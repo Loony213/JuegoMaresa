@@ -170,7 +170,21 @@ class App:
                 elif e.type==pygame.KEYDOWN and e.key==pygame.K_ESCAPE: self.running=False
                 elif e.type==pygame.MOUSEBUTTONDOWN and e.button==1:
                     if pygame.Rect(600,825,335,54).collidepoint(self.logical(e.pos)):
-                        print("[DATA CHEF] CONTINUAR -> conectar pantalla 03")
+                        pantalla_03 = os.path.join(
+                            os.path.dirname(os.path.abspath(__file__)),
+                            "pantalla_03_mercado.py"
+                        )
+                        print("[DATA CHEF] CONTINUAR -> MERCADO")
+
+                        if os.path.exists(pantalla_03):
+                            import subprocess
+                            subprocess.Popen(
+                                [sys.executable, pantalla_03],
+                                cwd=os.path.dirname(pantalla_03)
+                            )
+                            self.running = False
+                        else:
+                            print("[DATA CHEF] ERROR: No existe:", pantalla_03)
             self.draw()
         pygame.quit()
 
