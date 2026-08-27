@@ -1,5 +1,6 @@
 
 import os
+import sys
 import math
 import random
 import pygame
@@ -385,7 +386,43 @@ class DataChefApp:
     def choose_role(self, role):
         self.selected_role = role
         self.message = f"ROL SELECCIONADO: {role}"
-        self.message_timer = 2.0
+        self.message_timer = 0.5
+
+        # --------------------------------------------------------
+        # PASAR A LA PANTALLA 02
+        # Cada pantalla vive en su propio .py.
+        # Se abre pantalla_02_data_chef.py y se le pasa el rol.
+        # --------------------------------------------------------
+        pantalla_02 = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "pantalla_02_data_chef.py"
+        )
+
+        if not os.path.exists(pantalla_02):
+            self.message = "Falta pantalla_02_data_chef.py"
+            self.message_timer = 3.0
+            print(f"[DATA CHEF] ERROR: No existe {pantalla_02}")
+            return
+
+        role_arg = "rrhh" if role == "RECURSOS HUMANOS" else "tecnologia"
+
+        try:
+            import subprocess
+
+            print(f"[DATA CHEF] Abriendo pantalla 02 con rol: {role_arg}")
+
+            subprocess.Popen(
+                [sys.executable, pantalla_02, role_arg],
+                cwd=os.path.dirname(pantalla_02)
+            )
+
+            # Cerramos la pantalla inicial.
+            self.running = False
+
+        except Exception as exc:
+            self.message = "No se pudo abrir la siguiente pantalla"
+            self.message_timer = 3.0
+            print(f"[DATA CHEF] ERROR abriendo pantalla 02: {exc}")
 
     def open_image_picker(self):
         # Selector opcional para cargar personajes desde cualquier carpeta.
@@ -417,7 +454,17 @@ class DataChefApp:
 
             if target:
                 target.image = pygame.image.load(path).convert_alpha()
-                target.image.thumbnail((330, 270), pygame.Resampling.LANCZOS)
+
+                # Redimensionar con Pygame manteniendo proporción.
+                w, h = target.image.get_size()
+                max_w, max_h = 330, 270
+                if w > max_w or h > max_h:
+                    scale = min(max_w / w, max_h / h)
+                    target.image = pygame.transform.smoothscale(
+                        target.image,
+                        (max(1, int(w * scale)), max(1, int(h * scale)))
+                    )
+
                 target.image_name = path
                 self.message = f"Imagen cargada para {target.role}"
                 self.message_timer = 2.5
