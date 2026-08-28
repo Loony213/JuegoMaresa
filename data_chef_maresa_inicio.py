@@ -161,144 +161,142 @@ class Particle:
 
 
 class RoleCard:
-    def __init__(self, rect, role, subtitle, description, color, image_name):
+    def __init__(self, rect, role, description, color, image_name):
+        self.base_rect = pygame.Rect(rect)
         self.rect = pygame.Rect(rect)
         self.role = role
-        self.subtitle = subtitle
         self.description = description
         self.color = color
         self.image_name = image_name
-        self.image = load_image(image_name, (330, 270))
+        self.image = load_image(image_name, (self.rect.w - 16, 110))
         self.hover = 0.0
         self.selected = False
 
     def update(self, mouse, dt):
-        inside = self.rect.collidepoint(mouse)
+        inside = self.base_rect.collidepoint(mouse)
         target = 1.0 if inside else 0.0
-        self.hover += (target - self.hover) * min(1, dt * 8)
+        self.hover += (target - self.hover) * min(1, dt * 10)
+
+        # Elevación suave al hacer hover (efecto de juego profesional)
+        offset_y = int(self.hover * -5)
+        self.rect.x = self.base_rect.x
+        self.rect.y = self.base_rect.y + offset_y
         return inside
 
     def draw(self, surface, fonts, mouse):
-        inside = self.rect.collidepoint(mouse)
+        inside = self.base_rect.collidepoint(mouse)
 
-        # Sombra suave
-        shadow = pygame.Surface((self.rect.w + 24, self.rect.h + 24), pygame.SRCALPHA)
+        # Sombra dinámica en hover/seleccionado
+        shadow_alpha = int(15 + self.hover * 25)
+        if self.selected:
+            shadow_alpha = 40
+
+        shadow = pygame.Surface((self.rect.w + 14, self.rect.h + 14), pygame.SRCALPHA)
         pygame.draw.rect(
             shadow,
-            (30, 40, 50, 22),
-            (12, 12, self.rect.w, self.rect.h),
-            border_radius=28
+            (20, 30, 45, shadow_alpha),
+            (7, 7, self.rect.w, self.rect.h),
+            border_radius=16
         )
-        surface.blit(shadow, (self.rect.x - 6, self.rect.y - 6))
+        surface.blit(shadow, (self.rect.x - 3, self.rect.y - 3))
 
-        border_color = self.color if inside or self.selected else BORDER
-        border_width = 3 if inside or self.selected else 2
+        # Color de borde (Acento suave del rol en normal, vívido en hover/selected)
+        if self.selected:
+            border_color = self.color
+            border_width = 3
+        elif inside:
+            border_color = self.color
+            border_width = 2
+        else:
+            border_color = tuple(min(240, c + 150) for c in BORDER)
+            border_width = 1
 
+        # Tarjeta blanca limpia corporativa
         rounded_rect(
             surface,
             self.rect,
             WHITE,
-            radius=28,
+            radius=16,
             border=border_width,
             border_color=border_color
         )
 
-        # Encabezado visual
+        # Área reservada para la imagen del personaje (Fondo neutro/sutil acento)
         image_box = pygame.Rect(
-            self.rect.x + 12,
-            self.rect.y + 12,
-            self.rect.w - 24,
-            235
+            self.rect.x + 8,
+            self.rect.y + 8,
+            self.rect.w - 16,
+            110
         )
-        rounded_rect(
-            surface,
-            image_box,
-            LIGHT_BLUE if self.color == BLUE else LIGHT_ORANGE,
-            radius=22
-        )
+
+        bg_tint = (246, 248, 250) if not inside else tuple(min(255, c + 215) for c in self.color)
+        rounded_rect(surface, image_box, bg_tint, radius=12)
 
         if self.image:
             img = self.image
-            # Centrar imagen manteniendo tamaño.
             ir = img.get_rect()
             ir.center = image_box.center
             surface.blit(img, ir)
         else:
-            # Placeholder elegante hasta que el usuario suba el personaje.
-            icon_center = image_box.center
-            if self.color == BLUE:
-                draw_icon_chart(surface, icon_center, BLUE)
-            else:
-                draw_icon_people(surface, icon_center, ORANGE)
-
+            # Marco elegante reservado para el personaje (sin íconos genéricos adicionales)
+            pygame.draw.rect(surface, (230, 234, 240), image_box, width=1, border_radius=12)
             draw_text(
                 surface,
-                "SUBE TU PERSONAJE",
+                "PERSONAJE",
                 fonts["tiny_bold"],
                 MUTED,
-                (image_box.centerx, image_box.bottom - 26),
+                image_box.center,
                 center=True
             )
 
-        # Título
+        # Indicador de selección si está activo
+        if self.selected:
+            indicator_box = pygame.Rect(self.rect.right - 26, self.rect.y + 12, 16, 16)
+            pygame.draw.circle(surface, self.color, indicator_box.center, 8)
+            draw_text(surface, "✓", fonts["tiny_bold"], WHITE, indicator_box.center, center=True)
+
+        # Título del rol
+        title_color = DARK if not (inside or self.selected) else self.color
         draw_text(
             surface,
             self.role,
             fonts["role"],
-            self.color,
-            (self.rect.centerx, self.rect.y + 272),
+            title_color,
+            (self.rect.centerx, self.rect.y + 132),
             center=True
         )
 
-        # Descripción
+        # Descripción breve de 2 líneas
         draw_multiline(
             surface,
             self.description,
-            fonts["body"],
-            DARK,
+            fonts["tiny"],
+            MUTED,
             self.rect.centerx,
-            self.rect.y + 315,
-            gap=3
+            self.rect.y + 154,
+            gap=2
         )
 
-        # Botón
+        # Botón "SELECCIONAR →"
         button = pygame.Rect(
-            self.rect.x + 54,
-            self.rect.bottom - 58,
-            self.rect.w - 108,
-            40
+            self.rect.x + 14,
+            self.rect.bottom - 34,
+            self.rect.w - 28,
+            25
         )
 
-        button_color = self.color
-        if inside:
-            button_color = tuple(min(255, c + 18) for c in self.color)
+        button_color = self.color if (inside or self.selected) else (240, 243, 246)
+        text_color = WHITE if (inside or self.selected) else DARK
 
-        rounded_rect(surface, button, button_color, radius=20)
+        rounded_rect(surface, button, button_color, radius=12)
 
         draw_text(
             surface,
-            "SELECCIONAR",
+            "SELECCIONAR →" if not self.selected else "SELECCIONADO ✓",
             fonts["button"],
-            WHITE,
-            (button.centerx - 10, button.centery),
+            text_color,
+            button.center,
             center=True
-        )
-
-        # Flecha circular
-        pygame.draw.circle(
-            surface,
-            tuple(max(0, c - 15) for c in button_color),
-            (button.right - 24, button.centery),
-            14
-        )
-        pygame.draw.polygon(
-            surface,
-            WHITE,
-            [
-                (button.right - 28, button.centery - 5),
-                (button.right - 20, button.centery),
-                (button.right - 28, button.centery + 5),
-            ]
         )
 
         return button
@@ -309,90 +307,107 @@ class DataChefApp:
         pygame.init()
         pygame.display.set_caption("DATA CHEF | MARESA")
         self.window = pygame.display.set_mode((0, 0), pygame.RESIZABLE)
-        pygame.display.set_caption("DATA CHEF | MARESA")
         self.screen = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
         self.clock = pygame.time.Clock()
         self.scale = 1.0
         self.offset_x = 0
         self.offset_y = 0
 
+        # Tipografías limpias y nítidas
         self.fonts = {
-            "tiny": pygame.font.SysFont("Arial", 11),
-            "tiny_bold": pygame.font.SysFont("Arial", 11, bold=True),
-            "small": pygame.font.SysFont("Arial", 14),
-            "body": pygame.font.SysFont("Arial", 15),
-            "button": pygame.font.SysFont("Arial", 14, bold=True),
-            "role": pygame.font.SysFont("Arial", 22, bold=True),
-            "title": pygame.font.SysFont("Arial", 42, bold=True),
-            "subtitle": pygame.font.SysFont("Arial", 20, bold=True),
-            "brand": pygame.font.SysFont("Arial", 34, bold=True),
-            "footer": pygame.font.SysFont("Arial", 12),
+            "tiny": pygame.font.SysFont("Segoe UI", 12),
+            "tiny_bold": pygame.font.SysFont("Segoe UI", 12, bold=True),
+            "small": pygame.font.SysFont("Segoe UI", 14),
+            "body": pygame.font.SysFont("Segoe UI", 15),
+            "button": pygame.font.SysFont("Segoe UI", 12, bold=True),
+            "role": pygame.font.SysFont("Segoe UI", 15, bold=True),
+            "title": pygame.font.SysFont("Segoe UI", 40, bold=True),
+            "subtitle": pygame.font.SysFont("Segoe UI", 19, bold=True),
+            "brand": pygame.font.SysFont("Segoe UI", 32, bold=True),
+            "footer": pygame.font.SysFont("Segoe UI", 12),
         }
 
-        self.logo = load_image("logo_maresa.png", (250, 70))
+        self.logo = load_image("logo_maresa.png", (220, 60))
+        self.bg_image = load_image("fondo.png", (WIDTH, HEIGHT))
 
-        # ====================================================
-        # PERSONAJE PRINCIPAL
-        # Busca EXPLICITAMENTE assets/chef.png
-        # ====================================================
         chef_path = os.path.join(ASSETS, "chef.png")
-        print(f"[DATA CHEF] Buscando chef en: {chef_path}")
+        self.chef = load_image("chef.png", (380, 580))
 
-        self.chef = load_image("chef.png", (340, 530))
-
-        if self.chef is None:
-            print("[DATA CHEF] ERROR: No se pudo cargar assets/chef.png")
-            print("[DATA CHEF] Verifica que el archivo se llame exactamente: chef.png")
-        else:
-            print("[DATA CHEF] OK: chef.png cargado correctamente.")
-
-        self.cards = [
-            RoleCard(
-                (735, 295, 305, 475),
+        # 6 Roles corporativos en cuadrícula 3x2
+        role_definitions = [
+            (
                 "TECNOLOGÍA",
-                "Datos • Sistemas • BI",
-                [
-                    "Enfocado en la calidad de datos",
-                    "en sistemas, bases de datos",
-                    "y procesos tecnológicos."
-                ],
+                ["Gestión de datos, sistemas", "y calidad de información."],
                 BLUE,
                 "tecnologia.png"
             ),
-            RoleCard(
-                (1070, 295, 305, 475),
+            (
                 "RECURSOS HUMANOS",
-                "Personas • Talento • Procesos",
-                [
-                    "Enfocado en la calidad de datos",
-                    "de colaboradores, procesos",
-                    "y gestión del talento."
-                ],
+                ["Gestión de talento, nómina", "y desarrollo organizacional."],
                 ORANGE,
                 "rrhh.png"
             ),
+            (
+                "FINANZAS",
+                ["Finanzas, presupuesto", "y control contable."],
+                (35, 140, 95),
+                "finanzas.png"
+            ),
+            (
+                "OPERACIONES",
+                ["Procesos, logística", "y eficiencia operativa."],
+                (120, 70, 180),
+                "operaciones.png"
+            ),
+            (
+                "COMERCIAL / VENTAS",
+                ["Clientes, ventas,", "mercado y estrategia."],
+                (200, 60, 60),
+                "comercial.png"
+            ),
+            (
+                "AUDITORÍA / RIESGO",
+                ["Riesgos, cumplimiento", "y gobierno de datos."],
+                (55, 115, 165),
+                "auditoria.png"
+            ),
         ]
 
-        self.particles = [Particle() for _ in range(45)]
+        card_w = 210
+        card_h = 230
+        gap_x = 16
+        gap_y = 16
+        start_x = 730
+        start_y = 215
+
+        self.cards = []
+        for i, (role, desc, color, img_name) in enumerate(role_definitions):
+            col = i % 3
+            row = i // 3
+            x = start_x + col * (card_w + gap_x)
+            y = start_y + row * (card_h + gap_y)
+            self.cards.append(
+                RoleCard((x, y, card_w, card_h), role, desc, color, img_name)
+            )
+
+        self.particles = [Particle() for _ in range(30)]
         self.mouse = (0, 0)
         self.running = True
         self.selected_role = None
         self.message = ""
         self.message_timer = 0
 
-        self.chef_x = 350
+        self.chef_x = 570
         self.chef_bob = 0.0
 
-    def choose_role(self, role):
-        self.selected_role = role
-        self.message = f"ROL SELECCIONADO: {role}"
+    def choose_role(self, role_name):
+        self.selected_role = role_name
+        for card in self.cards:
+            card.selected = (card.role == role_name)
+
+        self.message = f"ROL SELECCIONADO: {role_name}"
         self.message_timer = 0.5
 
-        # --------------------------------------------------------
-        # PASAR A LA PANTALLA 02
-        # Cada pantalla vive en su propio .py.
-        # Se abre pantalla_02_data_chef.py y se le pasa el rol.
-        # --------------------------------------------------------
         pantalla_02 = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             "pantalla_02_data_chef.py"
@@ -401,31 +416,22 @@ class DataChefApp:
         if not os.path.exists(pantalla_02):
             self.message = "Falta pantalla_02_data_chef.py"
             self.message_timer = 3.0
-            print(f"[DATA CHEF] ERROR: No existe {pantalla_02}")
             return
 
-        role_arg = "rrhh" if role == "RECURSOS HUMANOS" else "tecnologia"
+        role_arg = "rrhh" if role_name == "RECURSOS HUMANOS" else "tecnologia"
 
         try:
             import subprocess
-
-            print(f"[DATA CHEF] Abriendo pantalla 02 con rol: {role_arg}")
-
             subprocess.Popen(
                 [sys.executable, pantalla_02, role_arg],
                 cwd=os.path.dirname(pantalla_02)
             )
-
-            # Cerramos la pantalla inicial.
             self.running = False
-
         except Exception as exc:
-            self.message = "No se pudo abrir la siguiente pantalla"
+            self.message = f"Error: {exc}"
             self.message_timer = 3.0
-            print(f"[DATA CHEF] ERROR abriendo pantalla 02: {exc}")
 
     def open_image_picker(self):
-        # Selector opcional para cargar personajes desde cualquier carpeta.
         try:
             import tkinter as tk
             from tkinter import filedialog
@@ -434,334 +440,166 @@ class DataChefApp:
             root.withdraw()
             path = filedialog.askopenfilename(
                 title="Selecciona una imagen de personaje",
-                filetypes=[
-                    ("Imágenes", "*.png *.jpg *.jpeg"),
-                    ("PNG", "*.png"),
-                    ("JPG", "*.jpg *.jpeg"),
-                ]
+                filetypes=[("Imágenes", "*.png *.jpg *.jpeg")]
             )
             root.destroy()
 
             if not path:
                 return
 
-            # Determinar qué personaje se quiere reemplazar según el mouse.
-            target = None
             for card in self.cards:
-                if card.rect.collidepoint(self.mouse):
-                    target = card
+                if card.base_rect.collidepoint(self.mouse):
+                    card.image = pygame.image.load(path).convert_alpha()
+                    w, h = card.image.get_size()
+                    max_w, max_h = card.rect.w - 16, 110
+                    if w > max_w or h > max_h:
+                        scale = min(max_w / w, max_h / h)
+                        card.image = pygame.transform.smoothscale(
+                            card.image,
+                            (max(1, int(w * scale)), max(1, int(h * scale)))
+                        )
+                    card.image_name = path
+                    self.message = f"Imagen cargada para {card.role}"
+                    self.message_timer = 2.5
                     break
-
-            if target:
-                target.image = pygame.image.load(path).convert_alpha()
-
-                # Redimensionar con Pygame manteniendo proporción.
-                w, h = target.image.get_size()
-                max_w, max_h = 330, 270
-                if w > max_w or h > max_h:
-                    scale = min(max_w / w, max_h / h)
-                    target.image = pygame.transform.smoothscale(
-                        target.image,
-                        (max(1, int(w * scale)), max(1, int(h * scale)))
-                    )
-
-                target.image_name = path
-                self.message = f"Imagen cargada para {target.role}"
-                self.message_timer = 2.5
-
-        except Exception as exc:
-            self.message = "No se pudo abrir el selector de imágenes"
-            self.message_timer = 2.5
+        except Exception:
+            pass
 
     def draw_background(self):
         self.screen.fill(BG)
-
-        # Degradado vertical muy suave.
-        overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-        for y in range(HEIGHT):
-            a = int(30 * (y / HEIGHT))
-            pygame.draw.line(
-                overlay,
-                (255, 255, 255, a),
-                (0, y),
-                (WIDTH, y)
-            )
-        self.screen.blit(overlay, (0, 0))
-
-        # Decoración de cocina: pequeñas líneas y círculos.
-        for i in range(8):
-            x = 650 + i * 110
-            pygame.draw.circle(
-                self.screen,
-                (242, 220, 198),
-                (x, 112 + (i % 2) * 10),
-                3
-            )
-
-        # Brillo naranja inferior izquierdo.
-        glow = pygame.Surface((560, 300), pygame.SRCALPHA)
-        for radius in range(280, 10, -12):
-            alpha = int(1.4 * (280 - radius))
-            pygame.draw.circle(
-                glow,
-                (*ORANGE, min(20, alpha)),
-                (80, 260),
-                radius
-            )
-        self.screen.blit(glow, (0, HEIGHT - 270))
 
         for particle in self.particles:
             particle.draw(self.screen)
 
     def draw_brand(self):
         if self.logo:
-            lr = self.logo.get_rect()
-            lr.topleft = (42, 25)
-            self.screen.blit(self.logo, lr)
+            self.screen.blit(self.logo, (40, 20))
         else:
-            # Logo tipográfico de respaldo.
-            pygame.draw.circle(self.screen, ORANGE, (67, 57), 26)
-            pygame.draw.arc(
-                self.screen,
-                WHITE,
-                (49, 42, 36, 30),
-                math.radians(205),
-                math.radians(335),
-                4
-            )
-            draw_text(
-                self.screen,
-                "maresa",
-                self.fonts["brand"],
-                ORANGE,
-                (103, 35)
-            )
-            draw_text(
-                self.screen,
-                "Pasión por lo que hacemos",
-                self.fonts["tiny"],
-                MUTED,
-                (105, 69)
-            )
+            draw_text(self.screen, "corporación maresa", self.fonts["brand"], ORANGE, (40, 20))
 
     def draw_chef(self):
         if not self.chef:
-            # Silueta/placeholder si aún no sube el chef.
-            x = int(self.chef_x)
-            y = 1000
-            pygame.draw.circle(self.screen, ORANGE, (x, y - 220), 58)
-            pygame.draw.ellipse(self.screen, WHITE, (x - 95, y - 300, 190, 240))
-            draw_text(
-                self.screen,
-                "SUBE chef.png",
-                self.fonts["small"],
-                MUTED,
-                (x, y - 70),
-                center=True
-            )
             return
-
-        bob = math.sin(self.chef_bob) * 3
+        bob = math.sin(self.chef_bob) * 3.5
         r = self.chef.get_rect()
-        self.chef_x = 350
-        self.chef_y = 560
-        r.midbottom = (int(self.chef_x), int(self.chef_y + bob))
+        r.midbottom = (int(self.chef_x), int(670 + bob))
         self.screen.blit(self.chef, r)
 
-    def draw_left_content(self):
-        # Título
-        draw_text(
-            self.screen,
-            "¡Bienvenido a",
-            self.fonts["subtitle"],
-            DARK,
-            (430, 105),
-            center=True
-        )
+    def draw_left_panel(self):
+        # 1. Encabezado principal
+        draw_text(self.screen, "¡Bienvenido a", self.fonts["subtitle"], DARK, (40, 95))
 
-        # DATA CHEF
-        draw_text(
-            self.screen,
-            "DATA",
-            self.fonts["title"],
-            DARK,
-            (430, 155),
-            center=True
-        )
-        draw_text(
-            self.screen,
-            "CHEF",
-            self.fonts["title"],
-            ORANGE,
-            (570, 155),
-            center=True
-        )
+        data_surf = self.fonts["title"].render("DATA ", True, DARK)
+        chef_surf = self.fonts["title"].render("CHEF", True, ORANGE)
+        self.screen.blit(data_surf, (40, 120))
+        self.screen.blit(chef_surf, (40 + data_surf.get_width(), 120))
 
-        # Icono de chef
-        pygame.draw.circle(self.screen, ORANGE, (395, 665), 27)
-        pygame.draw.arc(
-            self.screen,
-            WHITE,
-            (333, 148, 34, 25),
-            math.radians(190),
-            math.radians(350),
-            4
-        )
+        # Banner "LA COCINA DE LOS DATOS"
+        banner = pygame.Rect(40, 172, 230, 32)
+        rounded_rect(self.screen, banner, ORANGE, radius=16)
+        draw_text(self.screen, "LA COCINA DE LOS DATOS", self.fonts["tiny_bold"], WHITE, banner.center, center=True)
 
-        # Subtítulo
-        rounded_rect(
-            self.screen,
-            pygame.Rect(420, 210, 390, 42),
-            ORANGE,
-            radius=21
-        )
-        draw_text(
-            self.screen,
-            "La cocina de la calidad de los datos",
-            self.fonts["small"],
-            WHITE,
-            (615, 231),
-            center=True
-        )
+        # 2. Párrafo descriptivo
+        draw_text(self.screen, "Transformamos datos en recetas", self.fonts["body"], DARK, (40, 218))
+        draw_text(self.screen, "de valor para tomar mejores decisiones.", self.fonts["body"], DARK, (40, 240))
 
-        # Decoraciones
-        draw_star(self.screen, (830, 105), (91, 174, 240), 9)
-        draw_star(self.screen, (1380, 75), ORANGE, 10)
+        # 3. Sección "Tu misión" profesional
+        mission_box = pygame.Rect(40, 280, 285, 80)
+        rounded_rect(self.screen, mission_box, WHITE, radius=16, border=1, border_color=BORDER)
+        
+        # Pequeño acento visual naranja lateral
+        pygame.draw.rect(self.screen, ORANGE, (40, 280, 5, 80), border_top_left_radius=16, border_bottom_left_radius=16)
 
-        # Olla DATA CHEF
-        pot = pygame.Rect(110, 555, 400, 100)
-        rounded_rect(self.screen, pot, ORANGE, radius=42)
-        pygame.draw.rect(self.screen, ORANGE_DARK, (145, 630, 330, 25), border_radius=12)
+        draw_text(self.screen, "Tu misión", self.fonts["tiny_bold"], ORANGE, (58, 292))
+        draw_text(self.screen, "Prepara los datos con calidad,", self.fonts["tiny"], DARK, (58, 314))
+        draw_text(self.screen, "precisión y trabajo en equipo.", self.fonts["tiny"], DARK, (58, 332))
 
-        draw_text(
-            self.screen,
-            "DATA CHEF",
-            self.fonts["subtitle"],
-            WHITE,
-            pot.center,
-            center=True
-        )
+        # 4. CTA Principal "COMENZAR EXPERIENCIA →"
+        btn_start = pygame.Rect(40, 375, 285, 46)
+        rounded_rect(self.screen, btn_start, ORANGE, radius=18)
+        draw_text(self.screen, "COMENZAR EXPERIENCIA →", self.fonts["button"], WHITE, btn_start.center, center=True)
 
-        # Ingredientes de calidad
-        jars = [
-            ("EXACTITUD", GREEN),
-            ("COMPLETITUD", BLUE),
-            ("CONSISTENCIA", ORANGE),
-            ("OPORTUNIDAD", (150, 108, 175)),
+        # 5. Sección "TUS INGREDIENTES CLAVE"
+        draw_text(self.screen, "— TUS INGREDIENTES CLAVE —", self.fonts["tiny_bold"], MUTED, (40, 435))
+
+        pillars = [
+            ("EXACTITUD", ["Datos correctos", "y confiables."], GREEN),
+            ("COMPLETITUD", ["Información", "completa."], BLUE),
+            ("CONSISTENCIA", ["Reglas y formatos", "alineados."], ORANGE),
+            ("OPORTUNIDAD", ["Datos disponibles", "a tiempo."], (140, 80, 170)),
         ]
 
-        for i, (name, color) in enumerate(jars):
-            x = 55 + i * 125
-            y = 660
-            jar = pygame.Rect(x, y, 105, 110)
-            rounded_rect(self.screen, jar, WHITE, radius=14, border=2, border_color=BORDER)
-            pygame.draw.circle(self.screen, color, (x + 52, y + 35), 17)
-            draw_text(
-                self.screen,
-                name,
-                self.fonts["tiny_bold"],
-                color,
-                (x + 52, y + 82),
-                center=True
-            )
+        start_p_x = 40
+        p_y = 458
+        p_w, p_h = 82, 102
+        gap_p = 8
 
-        # Burbuja
-        bubble = pygame.Rect(60, 210, 245, 125)
-        rounded_rect(self.screen, bubble, WHITE, radius=22, border=1, border_color=BORDER)
-        draw_multiline(
-            self.screen,
-            ["Datos", "limpios, decisiones", "inteligentes."],
-            self.fonts["body"],
-            DARK,
-            bubble.centerx,
-            bubble.y + 22,
-            gap=2
-        )
-        pygame.draw.polygon(
-            self.screen,
-            WHITE,
-            [
-                (bubble.right - 55, bubble.bottom - 2),
-                (bubble.right - 28, bubble.bottom + 22),
-                (bubble.right - 70, bubble.bottom + 7),
-            ]
-        )
-        draw_text(
-            self.screen,
-            "♥",
-            self.fonts["subtitle"],
-            ORANGE,
-            (bubble.centerx, bubble.bottom - 25),
-            center=True
-        )
+        for i, (name, lines, color) in enumerate(pillars):
+            px = start_p_x + i * (p_w + gap_p)
+            box = pygame.Rect(px, p_y, p_w, p_h)
+            rounded_rect(self.screen, box, WHITE, radius=14, border=1, border_color=BORDER)
+            
+            # Pequeño indicador / punto de color en lugar de ícono gigante
+            pygame.draw.circle(self.screen, color, (box.centerx, box.y + 20), 5)
+            draw_text(self.screen, name, self.fonts["tiny_bold"], color, (box.centerx, box.y + 36), center=True)
+            draw_multiline(self.screen, lines, self.fonts["tiny"], MUTED, box.centerx, box.y + 56, gap=1)
 
     def draw_right_header(self):
+        header_x = 1050
+        header_y = 150
+
+        draw_text(self.screen, "SELECCIONA TU ÁREA", self.fonts["subtitle"], DARK, (header_x, header_y), center=True)
+        draw_text(self.screen, "→", self.fonts["subtitle"], ORANGE, (header_x - 120, header_y), center=True)
+        draw_text(self.screen, "←", self.fonts["subtitle"], ORANGE, (header_x + 120, header_y), center=True)
+
         draw_text(
             self.screen,
-            "ESCOGE TU ROL",
-            self.fonts["subtitle"],
-            DARK,
-            (1065, 225),
+            "Cada área tiene ingredientes únicos. ¡Elige el tuyo!",
+            self.fonts["tiny"],
+            MUTED,
+            (header_x, header_y + 26),
             center=True
         )
 
-        # Flechas decorativas
-        draw_text(
-            self.screen,
-            "→",
-            self.fonts["subtitle"],
-            ORANGE,
-            (955, 225),
-            center=True
-        )
-        draw_text(
-            self.screen,
-            "←",
-            self.fonts["subtitle"],
-            ORANGE,
-            (1175, 225),
-            center=True
-        )
+    def draw_footer_pipeline(self):
+        footer_box = pygame.Rect(35, 705, 1370, 95)
+        rounded_rect(self.screen, footer_box, WHITE, radius=18, border=1, border_color=BORDER)
 
-    def draw_footer(self):
-        footer = pygame.Rect(170, 790, 700, 40)
-        rounded_rect(self.screen, footer, WHITE, radius=22, border=1, border_color=BORDER)
+        draw_text(self.screen, "EN ESTA", self.fonts["tiny_bold"], ORANGE, (65, 732))
+        draw_text(self.screen, "EXPERIENCIA:", self.fonts["tiny_bold"], ORANGE, (65, 750))
 
-        items = [
-            ("✓", "Calidad\nen cada dato"),
-            ("★", "Decisiones\ncon confianza"),
-            ("◎", "Procesos\neficientes"),
-            ("♟", "Trabajamos\njuntos"),
+        steps = [
+            ("1", "SELECCIONA", "Elige los datos\nadecuados."),
+            ("2", "PREPARA", "Limpia, transforma\ny valida."),
+            ("3", "COCINA", "Modela y organiza\nlos ingredientes."),
+            ("4", "SIRVE", "Visualiza y comparte\ninformación de valor."),
         ]
 
-        x = footer.x + 70
-        for icon, text in items:
-            draw_text(
-                self.screen,
-                icon,
-                self.fonts["subtitle"],
-                ORANGE,
-                (x, footer.centery - 5),
-                center=True
-            )
-            draw_multiline(
-                self.screen,
-                text.split("\n"),
-                self.fonts["tiny"],
-                DARK,
-                x + 52,
-                footer.y + 8,
-                gap=0
-            )
-            x += 165
+        step_start_x = 210
+        step_gap = 210
 
-        draw_text(
+        for i, (num, title, desc) in enumerate(steps):
+            sx = step_start_x + i * step_gap
+            pygame.draw.circle(self.screen, (245, 240, 235), (sx, 752), 22)
+            draw_text(self.screen, num, self.fonts["tiny_bold"], DARK, (sx, 752), center=True)
+
+            # Subimos el título 7px (de 735 a 728) para separarlo limpiamente de la descripción
+            draw_text(self.screen, title, self.fonts["tiny_bold"], DARK, (sx + 32, 728))
+            draw_multiline(self.screen, desc.split("\n"), self.fonts["tiny"], MUTED, sx + 75, 750, gap=1)
+
+            if i < len(steps) - 1:
+                draw_text(self.screen, "—→", self.fonts["tiny"], ORANGE, (sx + 155, 752))
+
+        callout = pygame.Rect(1140, 718, 245, 70)
+        rounded_rect(self.screen, callout, LIGHT_ORANGE, radius=14, border=1, border_color=ORANGE)
+        draw_multiline(
             self.screen,
-            "MARESA • DATA CHEF",
-            self.fonts["footer"],
-            MUTED,
-            (1180, 810),
-            center=True
+            ["CONVIERTE DATOS", "EN DECISIONES", "INTELIGENTES"],
+            self.fonts["tiny_bold"],
+            ORANGE_DARK,
+            callout.centerx,
+            callout.y + 14,
+            gap=2
         )
 
     def draw_message(self):
@@ -780,45 +618,50 @@ class DataChefApp:
         )
 
     def draw(self):
-        # Todo se dibuja en una resolución lógica fija y luego
-        # se ajusta proporcionalmente a cualquier monitor.
         self.screen.fill(BG)
 
         self.draw_background()
         self.draw_brand()
-        self.draw_left_content()
+        self.draw_left_panel()
         self.draw_right_header()
 
         for card in self.cards:
             card.draw(self.screen, self.fonts, self.mouse)
 
         self.draw_chef()
-        self.draw_footer()
+        self.draw_footer_pipeline()
         self.draw_message()
 
         draw_text(
             self.screen,
-            "F2: cargar personaje • ESC: salir",
+            "F2: Cargar personaje   •   ESC: Salir",
             self.fonts["tiny"],
             (135, 145, 155),
-            (20, HEIGHT - 22)
+            (35, HEIGHT - 18)
         )
 
         win_w, win_h = self.window.get_size()
-        scale = min(win_w / WIDTH, win_h / HEIGHT)
-        render_w = max(1, int(WIDTH * scale))
-        render_h = max(1, int(HEIGHT * scale))
-        self.scale = scale
-        self.offset_x = (win_w - render_w) // 2
-        self.offset_y = (win_h - render_h) // 2
+        if win_w == WIDTH and win_h == HEIGHT:
+            self.window.blit(self.screen, (0, 0))
+            self.scale = 1.0
+            self.offset_x = 0
+            self.offset_y = 0
+        else:
+            scale = min(win_w / WIDTH, win_h / HEIGHT)
+            render_w = max(1, int(WIDTH * scale))
+            render_h = max(1, int(HEIGHT * scale))
+            self.scale = scale
+            self.offset_x = (win_w - render_w) // 2
+            self.offset_y = (win_h - render_h) // 2
 
-        scaled = pygame.transform.smoothscale(
-            self.screen,
-            (render_w, render_h)
-        )
+            scaled = pygame.transform.smoothscale(
+                self.screen,
+                (render_w, render_h)
+            )
 
-        self.window.fill((235, 235, 235))
-        self.window.blit(scaled, (self.offset_x, self.offset_y))
+            self.window.fill((235, 235, 235))
+            self.window.blit(scaled, (self.offset_x, self.offset_y))
+
         pygame.display.flip()
 
     def to_logical(self, pos):
@@ -833,13 +676,7 @@ class DataChefApp:
     def handle_click(self, pos):
         logical_pos = self.to_logical(pos)
         for card in self.cards:
-            button = pygame.Rect(
-                card.rect.x + 54,
-                card.rect.bottom - 58,
-                card.rect.w - 108,
-                40
-            )
-            if button.collidepoint(logical_pos):
+            if card.base_rect.collidepoint(logical_pos):
                 self.choose_role(card.role)
                 return
 
