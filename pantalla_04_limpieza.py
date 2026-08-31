@@ -31,10 +31,8 @@ def load_img(name, max_size=None):
     path = os.path.join(ASSETS, name)
     if not os.path.exists(path):
         return None
-
     try:
         img = pygame.image.load(path).convert_alpha()
-
         if max_size:
             mw, mh = max_size
             w, h = img.get_size()
@@ -44,7 +42,6 @@ def load_img(name, max_size=None):
                     img,
                     (max(1, int(w * scale)), max(1, int(h * scale)))
                 )
-
         return img
     except Exception as e:
         print("[DATA CHEF] Error cargando", path, e)
@@ -55,11 +52,8 @@ def rr(surface, rect, color, radius=18, border=0, border_color=None):
     pygame.draw.rect(surface, color, rect, border_radius=radius)
     if border:
         pygame.draw.rect(
-            surface,
-            border_color or color,
-            rect,
-            width=border,
-            border_radius=radius
+            surface, border_color or color, rect,
+            width=border, border_radius=radius
         )
 
 
@@ -113,7 +107,6 @@ class DataKitchen:
             "button": pygame.font.SysFont("Arial", 24, bold=True),
         }
 
-        # Cuatro minijuegos de limpieza.
         self.tasks = [
             {
                 "id": "duplicates",
@@ -198,17 +191,13 @@ class DataKitchen:
 
     def background(self):
         self.screen.fill(CREAM)
-
-        # Suelo inferior.
         pygame.draw.rect(self.screen, ROAD, (0, 650, WIDTH, HEIGHT - 650))
 
-        # Brillo suave de fondo.
         for radius, alpha in [(300, 18), (220, 20), (150, 25)]:
             glow = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
             pygame.draw.circle(glow, (255, 188, 88, alpha), (340, 300), radius)
             self.screen.blit(glow, (0, 0))
 
-        # Burbujas de pensamiento.
         pygame.draw.circle(self.screen, (245, 247, 246), (520, 250), 28)
         pygame.draw.circle(self.screen, (245, 247, 246), (590, 175), 48)
         pygame.draw.circle(self.screen, (245, 247, 246), (660, 105), 70)
@@ -220,30 +209,17 @@ class DataKitchen:
         pygame.draw.rect(self.screen, ORANGE, (0, 0, WIDTH, 110))
         pygame.draw.line(self.screen, (255, 182, 106), (0, 110), (WIDTH, 110), 2)
 
-        # Icono lupa.
         pygame.draw.circle(self.screen, WHITE, (410, 54), 20, 4)
         pygame.draw.line(self.screen, WHITE, (424, 68), (446, 90), 5)
         pygame.draw.circle(self.screen, WHITE, (410, 54), 5)
 
+        text(self.screen, "LA COCINA DE LOS DATOS", self.font["title"], WHITE, (475, 35))
         text(
-            self.screen,
-            "LA COCINA DE LOS DATOS",
-            self.font["title"],
-            WHITE,
-            (475, 35)
-        )
-
-        text(
-            self.screen,
-            "PASO 2 · LIMPIEZA Y ORDEN",
-            self.font["step"],
-            WHITE,
-            (1280, 48),
-            True
+            self.screen, "PASO 2 · LIMPIEZA Y ORDEN",
+            self.font["step"], WHITE, (1280, 48), True
         )
 
     def chef_area(self):
-        # Texto del pensamiento.
         thought = (
             "“Hmm... estos datos vienen crudos.\n"
             "Primero debo eliminar duplicados, corregir\n"
@@ -253,14 +229,7 @@ class DataKitchen:
 
         y = 130
         for line in thought.split("\n"):
-            text(
-                self.screen,
-                line,
-                self.font["bold"],
-                DARK,
-                (910, y),
-                True
-            )
+            text(self.screen, line, self.font["bold"], DARK, (910, y), True)
             y += 26
 
         if self.chef:
@@ -269,15 +238,12 @@ class DataKitchen:
             rect.midbottom = (430, 690 + bob)
             self.screen.blit(self.chef, rect)
         else:
-            # Chef provisional si todavía no sube chef_limpieza.png.
             pygame.draw.circle(self.screen, (248, 206, 160), (430, 530), 58)
             rr(self.screen, pygame.Rect(370, 570, 120, 100), WHITE, 24)
             pygame.draw.arc(self.screen, DARK, (395, 515, 70, 40), 0.2, 2.9, 3)
 
-        # Panel DATOS CRUDOS.
         box = pygame.Rect(95, 675, 640, 165)
         rr(self.screen, box, (250, 248, 244), 0, 3, ORANGE)
-
         text(self.screen, "♨  DATOS CRUDOS", self.font["step"], ORANGE, (300, 692))
 
         raw = [
@@ -287,13 +253,9 @@ class DataKitchen:
             "2025/08/45 → FORMATO CORREGIDO",
             "Quito | Quito → VALIDADO",
         ]
-
         colors = [
-            (155, 90, 75),
-            (90, 100, 85),
-            (82, 116, 95),
-            (124, 113, 80),
-            (70, 100, 90),
+            (155, 90, 75), (90, 100, 85), (82, 116, 95),
+            (124, 113, 80), (70, 100, 90),
         ]
 
         yy = 742
@@ -310,53 +272,34 @@ class DataKitchen:
 
         text(self.screen, "DATA ETL", self.font["etl"], BLUE, (1193, 312), True)
         text(
-            self.screen,
-            "EXTRAER → TRANSFORMAR → CARGAR",
-            self.font["small"],
-            WHITE,
-            (1193, 365),
-            True
+            self.screen, "EXTRAER → TRANSFORMAR → CARGAR",
+            self.font["small"], WHITE, (1193, 365), True
         )
 
         for task, rect in zip(self.tasks, self.card_rects):
             done = task["id"] in self.completed
             active = self.active == task["id"]
 
-            card_color = (245, 246, 245)
             border = GREEN if done else ORANGE if active else (144, 161, 170)
-
-            rr(self.screen, rect, card_color, 0, 3 if active or done else 2, border)
+            rr(
+                self.screen, rect, (245, 246, 245), 0,
+                3 if active or done else 2, border
+            )
 
             if done:
                 pygame.draw.circle(self.screen, GREEN, (rect.right - 20, rect.top + 20), 13)
                 text(self.screen, "✓", self.font["small"], WHITE, (rect.right - 20, rect.top + 19), True)
 
             text(
-                self.screen,
-                task["icon"],
+                self.screen, task["icon"],
                 pygame.font.SysFont("Arial", 42, bold=True),
                 ORANGE if not done else GREEN,
-                (rect.centerx, rect.top + 54),
-                True
+                (rect.centerx, rect.top + 54), True
             )
-            text(
-                self.screen,
-                task["title"],
-                self.font["card"],
-                DARK,
-                (rect.centerx, rect.top + 115),
-                True
-            )
+            text(self.screen, task["title"], self.font["card"], DARK, (rect.centerx, rect.top + 115), True)
 
             if done:
-                text(
-                    self.screen,
-                    "LISTO",
-                    self.font["tiny"],
-                    GREEN,
-                    (rect.centerx, rect.top + 142),
-                    True
-                )
+                text(self.screen, "LISTO", self.font["tiny"], GREEN, (rect.centerx, rect.top + 142), True)
 
     def challenge_panel(self):
         if self.active is None:
@@ -371,36 +314,14 @@ class DataKitchen:
         panel = pygame.Rect(300, 165, 936, 610)
         rr(self.screen, panel, (250, 248, 242), 24, 4, ORANGE)
 
-        text(
-            self.screen,
-            task["title"].upper(),
-            self.font["title"],
-            ORANGE,
-            (768, 205),
-            True
-        )
-        text(
-            self.screen,
-            task["instruction"],
-            self.font["bold"],
-            DARK,
-            (768, 260),
-            True
-        )
-        text(
-            self.screen,
-            task["hint"],
-            self.font["small"],
-            (94, 109, 118),
-            (768, 292),
-            True
-        )
+        text(self.screen, task["title"].upper(), self.font["title"], ORANGE, (768, 205), True)
+        text(self.screen, task["instruction"], self.font["bold"], DARK, (768, 260), True)
+        text(self.screen, task["hint"], self.font["small"], (94, 109, 118), (768, 292), True)
 
-        # Tabla.
         table = pygame.Rect(370, 330, 796, 295)
         rr(self.screen, table, WHITE, 12, 2, (174, 188, 194))
-
         pygame.draw.rect(self.screen, DARK_PANEL, (372, 332, 792, 42))
+
         headers = ["NOMBRE", "VALOR", "ESTADO"]
         hx = [440, 720, 1010]
         for h, x in zip(headers, hx):
@@ -437,22 +358,8 @@ class DataKitchen:
 
         confirm = pygame.Rect(865, 665, 270, 58)
         rr(self.screen, confirm, ORANGE, 16)
-        text(
-            self.screen,
-            "COMPROBAR ✓",
-            self.font["button"],
-            WHITE,
-            confirm.center,
-            True
-        )
-
-        text(
-            self.screen,
-            f"Seleccionados: {len(self.selected)}",
-            self.font["small"],
-            DARK,
-            (420, 692)
-        )
+        text(self.screen, "COMPROBAR ✓", self.font["button"], WHITE, confirm.center, True)
+        text(self.screen, f"Seleccionados: {len(self.selected)}", self.font["small"], DARK, (420, 692))
 
     def bottom(self):
         panel = pygame.Rect(650, 825, 520, 60)
@@ -475,25 +382,9 @@ class DataKitchen:
 
         score_box = pygame.Rect(1265, 125, 240, 48)
         rr(self.screen, score_box, DARK_PANEL, 20)
-        text(
-            self.screen,
-            f"⭐ {self.score}",
-            self.font["bold"],
-            WHITE,
-            (1385, 149),
-            True
-        )
+        text(self.screen, f"⭐ {self.score}", self.font["bold"], WHITE, (1385, 149), True)
 
-        # Mensaje contextual.
-        text(
-            self.screen,
-            self.message,
-            self.font["small"],
-            self.message_color,
-            (768, 745),
-            True
-        )
-
+        text(self.screen, self.message, self.font["small"], self.message_color, (768, 745), True)
         self.bottom()
 
         if self.active is not None:
@@ -545,9 +436,31 @@ class DataKitchen:
             self.message_color = RED
             print("[DATA CHEF] RESPUESTA INCORRECTA EN:", task["title"])
 
+    def open_screen_05(self):
+        pantalla_05 = os.path.join(BASE, "pantalla_05_reto_chef.py")
+        print("[DATA CHEF] CONTINUAR -> RETO DEL CHEF")
+
+        if not os.path.exists(pantalla_05):
+            print("[DATA CHEF] ERROR: No existe:", pantalla_05)
+            self.message = "ERROR: No se encontró pantalla_05_reto_chef.py"
+            self.message_color = RED
+            return
+
+        try:
+            subprocess_args = [sys.executable, pantalla_05]
+            import subprocess
+            subprocess.Popen(
+                subprocess_args,
+                cwd=BASE
+            )
+            self.running = False
+        except Exception as e:
+            print("[DATA CHEF] ERROR abriendo pantalla 05:", e)
+            self.message = "No se pudo abrir la siguiente pantalla."
+            self.message_color = RED
+
     def click(self, pos):
         if self.active is not None:
-            # Filas del minijuego.
             for i, rect in enumerate(self.row_rects):
                 if rect.collidepoint(pos):
                     if i in self.selected:
@@ -561,16 +474,12 @@ class DataKitchen:
                 self.check_task()
             return
 
-        # Botón final.
         if len(self.completed) == 4:
             final_button = pygame.Rect(650, 825, 520, 60)
             if final_button.collidepoint(pos):
-                print("[DATA CHEF] CONTINUAR -> SIGUIENTE PASO")
-                # Aquí después conectaremos pantalla_05.
-                self.running = False
+                self.open_screen_05()
                 return
 
-        # Tarjetas ETL.
         for task, rect in zip(self.tasks, self.card_rects):
             if rect.collidepoint(pos):
                 self.open_task(task)
@@ -586,10 +495,7 @@ class DataKitchen:
                     self.running = False
 
                 elif event.type == pygame.VIDEORESIZE:
-                    self.window = pygame.display.set_mode(
-                        event.size,
-                        pygame.RESIZABLE
-                    )
+                    self.window = pygame.display.set_mode(event.size, pygame.RESIZABLE)
 
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
