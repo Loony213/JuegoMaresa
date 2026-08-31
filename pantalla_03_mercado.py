@@ -334,7 +334,7 @@ class Market:
         self.intro_building_positions = [
             (500, 625),    # BASE DE DATOS
             (815, 625),    # ARCHIVO EXCEL
-            (1130, 925),   # FUENTE EXTERNA
+            (1130, 625),   # FUENTE EXTERNA
             (1400, 625)    # MENSAJE / CHAT
         ]
 

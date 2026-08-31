@@ -2576,7 +2576,7 @@ class DataChefScreen:
         elif self.scene == "final":
             self.draw_final()
 
-        # Adaptar pantalla lógica a ventana
+        # Adaptar pantalla lógica a ventana.
         ww, wh = self.window.get_size()
 
         self.scale = min(
