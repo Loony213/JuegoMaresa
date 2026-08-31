@@ -40,11 +40,30 @@ def rr(s, r, c, radius=18, border=0, bc=None):
 def txt(s, v, f, c, p, center=False):
     a = f.render(v, True, c)
     r = a.get_rect()
-    r.center = p if center else r.topleft
-    if not center:
+    if center:
+        r.center = p
+    else:
         r.topleft = p
     s.blit(a, r)
     return r
+
+def load_first_img(candidates, max_size=None, label="imagen"):
+    """
+    Carga la primera imagen que exista. Esto evita romper el juego si
+    anteriormente ya tenías los edificios con sus nombres originales.
+    """
+    for name in candidates:
+        path = os.path.join(ASSETS, name)
+        if os.path.exists(path):
+            img = load_img(name, max_size)
+            if img is not None:
+                print(f"[DATA CHEF] {label}: usando {name}")
+                return img, name
+
+    print(f"[DATA CHEF] Falta {label}. Se probaron:")
+    for name in candidates:
+        print("   -", os.path.join(ASSETS, name))
+    return None, None
 
 class Market:
     def __init__(self):
@@ -57,7 +76,7 @@ class Market:
         self.t = 0
         self.mode = "intro"
         self.player_x = 790.0
-        self.player_y = 690.0
+        self.player_y = 792.0
         self.player_speed = 280.0
         self.player_moving = False
         self.score = 1250
@@ -83,6 +102,18 @@ class Market:
             (1110, 790),
         ]
 
+        # =====================================================
+        # CONFIGURACIÓN DE CALLES DEL MINIJUEGO
+        # =====================================================
+        # Puedes ajustar estos valores si luego quieres calles
+        # más anchas o una rotonda más grande.
+        self.road_width = 74
+        self.roundabout_radius = 92
+        self.roundabout_inner = 44
+
+        # Se generan curvas, no líneas rectas.
+        self.road_paths = self.build_road_paths()
+
         self.font = {
             "tiny": pygame.font.SysFont("Arial", 14),
             "small": pygame.font.SysFont("Arial", 17),
@@ -101,19 +132,57 @@ class Market:
         self.chef_img = load_img("chef_pensando.png", (390, 555))
 
         # =====================================================
-        # 4 EDIFICIOS - SUBE ESTOS 4 PNG A assets/
+        # EDIFICIOS
+        # Se restauran los nombres originales que ya venías usando.
+        # Los nombres edificio_1.png ... edificio_4.png quedan solo
+        # como respaldo por si alguno de tus archivos antiguos usa esos.
         # =====================================================
         self.building_files = [
-            "edificio_1.png",
-            "edificio_2.png",
-            "edificio_3.png",
-            "edificio_4.png"
+            (
+                "BASE DE DATOS",
+                [
+                    "edificio_bases_datos.png",
+                    "edificio_1.png",
+                ],
+            ),
+            (
+                "ARCHIVO EXCEL",
+                [
+                    "edificio_archivos_excel.png",
+                    "edificio_2.png",
+                ],
+            ),
+            (
+                "FUENTE EXTERNA",
+                [
+                    "edificio_fuentes_externas.png",
+                    "edificio_fuentes_datos.png",
+                    "edificio_3.png",
+                ],
+            ),
+            (
+                "MENSAJE / CHAT",
+                [
+                    "edificio_mensaje_chat.png",
+                    "edificio_mensaje.png",
+                    "edificio_chat.png",
+                    "edificio_apis_sistemas.png",
+                    "edificio_4.png",
+                ],
+            ),
         ]
 
-        self.buildings = [
-            load_img(filename, (240, 380))
-            for filename in self.building_files
-        ]
+        self.buildings = []
+        self.building_loaded_names = []
+
+        for label, candidates in self.building_files:
+            img, used_name = load_first_img(
+                candidates,
+                (240, 380),
+                label=label
+            )
+            self.buildings.append(img)
+            self.building_loaded_names.append(used_name)
 
         self.logo = load_img("logo_maresa.png", (225,65))
 
@@ -336,68 +405,234 @@ class Market:
             self.font["button"],WHITE,b.center,True)
 
     # =====================================================
-    # MINIJUEGO: los caminos aparecen SOLO al pulsar EMPEZAR
+    # MINIJUEGO: CALLES CUADRADAS TIPO MAPA URBANO
     # =====================================================
 
+    def build_road_paths(self):
+        """
+        Red de calles tipo ciudad: tramos horizontales y verticales,
+        con esquinas redondeadas visualmente. No usa diagonales largas.
+        """
+        cx, cy = 790, 700
+
+        return [
+            [
+                (cx - 88, cy),
+                (650, cy),
+                (650, 610),
+                (430, 610),
+                (430, 555),
+                (240, 555),
+            ],
+            [
+                (cx + 88, cy),
+                (930, cy),
+                (930, 610),
+                (1160, 610),
+                (1160, 555),
+                (1310, 555),
+            ],
+            [
+                (cx - 88, cy),
+                (650, cy),
+                (650, 775),
+                (560, 775),
+                (560, 790),
+                (500, 790),
+            ],
+            [
+                (cx + 88, cy),
+                (930, cy),
+                (930, 775),
+                (1040, 775),
+                (1040, 790),
+                (1110, 790),
+            ],
+        ]
+
+    def draw_road(self, points, width=None):
+        if len(points) < 2:
+            return
+        if width is None:
+            width = self.road_width
+
+        border_color = (43, 47, 48)
+        line_color = (236, 231, 213)
+
+        pygame.draw.lines(self.screen, border_color, False, points, width + 12)
+        outer_r = (width + 12) // 2
+        for x, y in points:
+            pygame.draw.circle(self.screen, border_color, (int(x), int(y)), outer_r)
+
+        pygame.draw.lines(self.screen, ROAD, False, points, width)
+        inner_r = width // 2
+        for x, y in points:
+            pygame.draw.circle(self.screen, ROAD, (int(x), int(y)), inner_r)
+
+        dash_len = 22.0
+        gap_len = 20.0
+        drawing_dash = True
+        remaining = dash_len
+
+        for a, b in zip(points[:-1], points[1:]):
+            ax, ay = a
+            bx, by = b
+            dx = bx - ax
+            dy = by - ay
+            length = math.hypot(dx, dy)
+            if length <= 0:
+                continue
+
+            ux = dx / length
+            uy = dy / length
+            pos = 0.0
+
+            while pos < length:
+                step = min(remaining, length - pos)
+
+                if drawing_dash and step > 0:
+                    p1 = (int(ax + ux * pos), int(ay + uy * pos))
+                    p2 = (int(ax + ux * (pos + step)), int(ay + uy * (pos + step)))
+                    pygame.draw.line(self.screen, line_color, p1, p2, 4)
+
+                pos += step
+                remaining -= step
+
+                if remaining <= 0.001:
+                    drawing_dash = not drawing_dash
+                    remaining = dash_len if drawing_dash else gap_len
+
     def draw_game_paths(self):
-        # Camino hacia Base de Datos
-        pygame.draw.polygon(
-            self.screen, (155,138,108),
-            [(705,700),(775,700),(310,555),(220,555)]
-        )
-        pygame.draw.polygon(
-            self.screen, (220,203,171),
-            [(710,694),(770,694),(315,550),(225,550)]
-        )
+        for path in self.road_paths:
+            self.draw_road(path, self.road_width)
 
-        # Camino hacia Excel
-        pygame.draw.polygon(
-            self.screen, (155,138,108),
-            [(805,700),(875,700),(1320,555),(1280,555)]
-        )
-        pygame.draw.polygon(
-            self.screen, (220,203,171),
-            [(810,694),(870,694),(1315,550),(1285,550)]
-        )
+        cx, cy = 790, 700
 
-        # Camino hacia fuente externa
-        pygame.draw.polygon(
-            self.screen, (155,138,108),
-            [(750,720),(785,720),(515,800),(475,800)]
-        )
-        pygame.draw.polygon(
-            self.screen, (220,203,171),
-            [(755,714),(780,714),(515,794),(480,794)]
-        )
+        pygame.draw.circle(self.screen, (43, 47, 48), (cx, cy), self.roundabout_radius + 8)
+        pygame.draw.circle(self.screen, ROAD, (cx, cy), self.roundabout_radius)
 
-        # Camino hacia chat
-        pygame.draw.polygon(
-            self.screen, (155,138,108),
-            [(815,720),(850,720),(1115,800),(1150,800)]
-        )
-        pygame.draw.polygon(
-            self.screen, (220,203,171),
-            [(820,714),(845,714),(1115,794),(1145,794)]
-        )
+        pygame.draw.circle(self.screen, (236, 231, 213), (cx, cy), 67, 4)
 
-        # Plaza central
-        pygame.draw.circle(self.screen, (155,138,108), (790,700), 88)
-        pygame.draw.circle(self.screen, (220,203,171), (790,700), 80)
+        pygame.draw.circle(self.screen, (214, 201, 164), (cx, cy), self.roundabout_inner)
+        pygame.draw.circle(self.screen, (88, 125, 66), (cx, cy), 32)
+        pygame.draw.circle(self.screen, (63, 102, 55), (cx, cy), 21)
 
-        # Señal central para dar sensación de videojuego.
         pygame.draw.rect(
-            self.screen, (105,72,42),
-            (784,630,12,75),
-            border_radius=5
+            self.screen,
+            (105, 72, 42),
+            (cx - 5, cy - 74, 10, 35),
+            border_radius=4
         )
         pygame.draw.polygon(
-            self.screen, (105,72,42),
-            [(790,642),(850,642),(850,658),(790,658)]
+            self.screen,
+            (105, 72, 42),
+            [(cx, cy - 80), (cx + 48, cy - 57), (cx, cy - 36)]
         )
-        pygame.draw.polygon(
-            self.screen, (105,72,42),
-            [(790,678),(735,678),(735,694),(790,694)]
+
+    def nearest_point_on_segment(self, px, py, ax, ay, bx, by):
+        vx = bx - ax
+        vy = by - ay
+        length_sq = vx*vx + vy*vy
+
+        if length_sq == 0:
+            return ax, ay, math.hypot(px-ax, py-ay)
+
+        t = ((px-ax)*vx + (py-ay)*vy) / length_sq
+        t = max(0.0, min(1.0, t))
+
+        qx = ax + vx*t
+        qy = ay + vy*t
+
+        return qx, qy, math.hypot(px-qx, py-qy)
+
+    def nearest_road_point(self, x, y):
+        """
+        Busca el punto más cercano dentro de toda la red de calles.
+        Sirve para impedir que el personaje salga al césped o edificios.
+        """
+        best_x = x
+        best_y = y
+        best_dist = float("inf")
+
+        # Calles curvas.
+        for path in self.road_paths:
+            for a, b in zip(path[:-1], path[1:]):
+                qx, qy, dist = self.nearest_point_on_segment(
+                    x, y, a[0], a[1], b[0], b[1]
+                )
+                if dist < best_dist:
+                    best_x, best_y, best_dist = qx, qy, dist
+
+        # Rotonda.
+        dx = x - 790
+        dy = y - 700
+        d = math.hypot(dx, dy)
+
+        # Dentro de la rotonda se puede caminar libremente,
+        # excepto dentro de la isla central.
+        if self.roundabout_inner <= d <= self.roundabout_radius:
+            return x, y, 0.0, "roundabout"
+
+        # Si intenta entrar en la isla central, lo empujamos al borde.
+        if d < self.roundabout_inner:
+            if d == 0:
+                return 790 + self.roundabout_inner, 700, 0.0, "island"
+            return (
+                790 + dx/d * self.roundabout_inner,
+                700 + dy/d * self.roundabout_inner,
+                0.0,
+                "island"
+            )
+
+        # Borde exterior de la rotonda como alternativa.
+        if d < best_dist:
+            if d == 0:
+                qx, qy = 790 + self.roundabout_radius, 700
+            else:
+                qx = 790 + dx/d * self.roundabout_radius
+                qy = 700 + dy/d * self.roundabout_radius
+            return qx, qy, d - self.roundabout_radius, "roundabout_edge"
+
+        return best_x, best_y, best_dist, "road"
+
+    def constrain_player_to_roads(self, old_x, old_y):
+        """
+        Si el jugador intenta salir de la calle, se queda en el punto
+        permitido más cercano. Así nunca puede caminar por cualquier lado.
+        """
+        nx, ny, dist, zone = self.nearest_road_point(
+            self.player_x, self.player_y
         )
+
+        # El personaje tiene un poco de margen dentro del asfalto.
+        allowed = self.road_width * 0.42
+
+        if zone == "roundabout":
+            return
+
+        # La isla central NO es transitable. Si entra, se proyecta
+        # inmediatamente al borde interior de la rotonda.
+        if zone == "island":
+            self.player_x = nx
+            self.player_y = ny
+            return
+
+        if dist > allowed:
+            # Proyección directa al borde permitido de la calle.
+            dx = self.player_x - nx
+            dy = self.player_y - ny
+            d = math.hypot(dx, dy)
+
+            if d > 0:
+                self.player_x = nx + dx/d * allowed
+                self.player_y = ny + dy/d * allowed
+            else:
+                self.player_x = nx
+                self.player_y = ny
+
+        # Evita que el personaje se meta visualmente dentro del edificio.
+        self.player_x = max(45, min(WIDTH-45, self.player_x))
+        self.player_y = max(270, min(HEIGHT-20, self.player_y))
 
     def draw_player(self):
         if self.player_img:
@@ -466,11 +701,15 @@ class Market:
             dx *= 0.7071
             dy *= 0.7071
 
+        old_x = self.player_x
+        old_y = self.player_y
+
         self.player_x += dx * self.player_speed * dt
         self.player_y += dy * self.player_speed * dt
 
-        self.player_x = max(45, min(WIDTH-45, self.player_x))
-        self.player_y = max(270, min(HEIGHT-20, self.player_y))
+        # IMPORTANTE:
+        # Aquí se restringe el movimiento a la red de calles.
+        self.constrain_player_to_roads(old_x, old_y)
 
         self.check_building_collision()
 
@@ -479,7 +718,7 @@ class Market:
             dx = self.player_x - bx
             dy = self.player_y - by
 
-            if math.hypot(dx, dy) < 105:
+            if math.hypot(dx, dy) < 125:
                 info = self.building_info[index]
 
                 if info["correct"]:
@@ -569,6 +808,17 @@ class Market:
             True
         )
 
+        button = pygame.Rect(625, 575, 285, 52)
+        rr(self.screen, button, ORANGE, 16)
+        txt(
+            self.screen,
+            "CONTINUAR  →",
+            self.font["small"],
+            WHITE,
+            button.center,
+            True
+        )
+
     def draw_wrong(self):
         self.draw_game()
 
@@ -616,6 +866,8 @@ class Market:
         )
 
     def draw(self):
+        self.screen.fill(BG)
+
         if self.mode == "intro":
             # Pantalla ORIGINAL. Aquí NO hay caminos.
             self.background()
@@ -680,7 +932,7 @@ class Market:
                         elif pygame.Rect(950,811,390,45).collidepoint(pos):
                             self.mode = "game"
                             self.player_x = 790.0
-                            self.player_y = 690.0
+                            self.player_y = 792.0
                             print("[DATA CHEF] EMPEZAR -> MINIJUEGO")
                             print("[DATA CHEF] Caminos activados")
 
@@ -690,12 +942,31 @@ class Market:
                         if button.collidepoint(pos):
                             self.mode = "game"
                             self.player_x = 790.0
-                            self.player_y = 690.0
+                            self.player_y = 792.0
                             print("[DATA CHEF] Reintento")
 
                     elif self.mode == "success":
-                        # Aquí luego conectamos pantalla_04.
-                        pass
+                        button = pygame.Rect(625, 575, 285, 52)
+
+                        if button.collidepoint(pos):
+                            pantalla_04 = os.path.join(
+                                os.path.dirname(os.path.abspath(__file__)),
+                                "pantalla_04_limpieza.py"
+                            )
+
+                            print("[DATA CHEF] CONTINUAR -> PANTALLA 04 · LIMPIEZA Y ORDEN")
+
+                            if os.path.exists(pantalla_04):
+                                import subprocess
+
+                                subprocess.Popen(
+                                    [sys.executable, pantalla_04],
+                                    cwd=os.path.dirname(pantalla_04)
+                                )
+
+                                self.running = False
+                            else:
+                                print("[DATA CHEF] ERROR: No existe:", pantalla_04)
 
             if self.mode == "game":
                 self.update_player(dt)
