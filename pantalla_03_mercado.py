@@ -999,8 +999,8 @@ class Market:
             info["short"],
             self.font["small"],
             color,
-            (card.x + 41, card.centery),
-            center=False
+            (card.x + 120, card.centery),
+            center=True
         )
 
 
