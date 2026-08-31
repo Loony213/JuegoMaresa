@@ -1,4 +1,4 @@
-﻿import os
+import os
 import sys
 import math
 import random
@@ -11,6 +11,9 @@ import pygame
 
 pygame.init()
 
+# Color auxiliar para textos secundarios del HUD.
+MUTED = (126, 134, 142)
+
 WIDTH, HEIGHT = 1536, 864
 FPS = 60
 
@@ -22,15 +25,20 @@ BG = (247, 244, 238)
 WHITE = (255, 255, 255)
 DARK = (43, 50, 57)
 DARK_2 = (71, 78, 84)
-MUTED = (126, 134, 142)
 
 ORANGE = (239, 103, 12)
 ORANGE_DARK = (211, 78, 7)
 ORANGE_SOFT = (255, 243, 229)
 
 SKY = (103, 183, 229)
-ROAD = (76, 79, 78)
-ROAD_DARK = (50, 54, 54)
+ROAD = (68, 72, 72)
+ROAD_DARK = (43, 47, 48)
+ROAD_SHADOW = (34, 38, 39)
+SIDEWALK = (220, 216, 204)
+SIDEWALK_LIGHT = (242, 238, 224)
+CURB = (188, 184, 174)
+LANE = (245, 241, 222)
+ROAD_HIGHLIGHT = (91, 95, 94)
 
 CREAM = (255, 249, 240)
 CREAM_2 = (249, 241, 229)
@@ -324,10 +332,10 @@ class Market:
         # ====================================================
 
         self.intro_building_positions = [
-            (500, 690),
-            (815, 675),
-            (1130, 675),
-            (1400, 690)
+            (500, 625),    # BASE DE DATOS
+            (815, 625),    # ARCHIVO EXCEL
+            (1130, 925),   # FUENTE EXTERNA
+            (1400, 625)    # MENSAJE / CHAT
         ]
 
         # ====================================================
@@ -345,7 +353,7 @@ class Market:
         # CALLES
         # ====================================================
 
-        self.road_width = 74
+        self.road_width = 82
         self.roundabout_radius = 92
         self.roundabout_inner = 44
         self.road_paths = self.build_road_paths()
@@ -556,13 +564,34 @@ class Market:
         )
 
         # ----------------------------------------------------
-        # CARRETERA
+        # CARRETERA / AVENIDA
         # ----------------------------------------------------
+
+        # Franja de transición de la vereda a la avenida.
+        pygame.draw.rect(
+            self.screen,
+            SIDEWALK,
+            (0, 650, WIDTH, 9)
+        )
+
+        pygame.draw.line(
+            self.screen,
+            CURB,
+            (0, 658),
+            (WIDTH, 658),
+            3
+        )
+
+        pygame.draw.rect(
+            self.screen,
+            ROAD_DARK,
+            (0, 660, WIDTH, 204)
+        )
 
         pygame.draw.rect(
             self.screen,
             ROAD,
-            (0, 650, WIDTH, 214)
+            (0, 665, WIDTH, 199)
         )
 
         # ----------------------------------------------------
@@ -575,10 +604,10 @@ class Market:
                 self.screen,
                 (239, 235, 217),
                 [
-                    (x, 775),
-                    (x + 68, 775),
-                    (x + 38, 793),
-                    (x - 30, 793)
+                    (x, 800),
+                    (x + 68, 800),
+                    (x + 38, 818),
+                    (x - 30, 818)
                 ]
             )
 
@@ -994,12 +1023,14 @@ class Market:
             self.font["micro"]
         )
 
+        text_center_x = int(card.x + 42 + (card.width - 52) / 2)
+
         txt(
             self.screen,
             info["short"],
             self.font["small"],
             color,
-            (card.x + 120, card.centery),
+            (text_center_x, card.centery),
             center=True
         )
 
@@ -1030,7 +1061,7 @@ class Market:
             # ------------------------------------------------
 
             shadow_surface = pygame.Surface(
-                (250, 34),
+                (250, 134),
                 pygame.SRCALPHA
             )
 
@@ -1097,10 +1128,10 @@ class Market:
             if not game:
 
                 label_positions = [
-                    (500, 447),
-                    (815, 447),
-                    (1130, 447),
-                    (1400, 447)
+                    (500, 425),
+                    (815, 425),
+                    (1130, 425),
+                    (1400, 425)
                 ]
 
                 lx, ly = label_positions[index]
@@ -1119,7 +1150,7 @@ class Market:
 
                 label = pygame.Rect(
                     x - 105,
-                    y + 8,
+                    y - 2,
                     210,
                     34
                 )
@@ -1151,9 +1182,9 @@ class Market:
 
         box = pygame.Rect(
             330,
-            792,
+            790,
             1180,
-            60
+            62
         )
 
         shadow(
@@ -1179,7 +1210,7 @@ class Market:
 
         circle_badge(
             self.screen,
-            (368, 822),
+            (368, 821),
             19,
             ORANGE,
             "01",
@@ -1195,7 +1226,7 @@ class Market:
             "ENCUENTRA LA FUENTE MÁS CONFIABLE",
             self.font["bold"],
             DARK,
-            (405, 801)
+            (405, 799)
         )
 
         txt(
@@ -1203,7 +1234,7 @@ class Market:
             "Elige la mejor materia prima para tu receta.",
             self.font["small"],
             MUTED,
-            (405, 827)
+            (405, 825)
         )
 
         # ----------------------------------------------------
@@ -1212,7 +1243,7 @@ class Market:
 
         button = pygame.Rect(
             1122,
-            799,
+            798,
             368,
             47
         )
@@ -1299,114 +1330,368 @@ class Market:
         ]
 
 
-    def draw_road(self, points, width=None):
+    def _polyline_round(self, color, points, width):
+        """Dibuja una polilínea con uniones redondeadas."""
+        if len(points) < 2:
+            return
 
+        pygame.draw.lines(
+            self.screen,
+            color,
+            False,
+            points,
+            int(width)
+        )
+
+        radius = int(width / 2)
+        for px, py in points:
+            pygame.draw.circle(
+                self.screen,
+                color,
+                (int(px), int(py)),
+                radius
+            )
+
+    def _draw_dashes(self, points, width=4, dash_len=24, gap_len=22,
+                     color=LANE, phase=0.0):
+        """Línea discontinua que sigue cada tramo de una calle."""
+        if len(points) < 2:
+            return
+
+        for a, b in zip(points[:-1], points[1:]):
+            ax, ay = a
+            bx, by = b
+            dx = bx - ax
+            dy = by - ay
+            seg_len = math.hypot(dx, dy)
+
+            if seg_len <= 0:
+                continue
+
+            ux = dx / seg_len
+            uy = dy / seg_len
+            pos = phase % (dash_len + gap_len)
+
+            while pos < seg_len:
+                dash_start = pos
+                dash_end = min(pos + dash_len, seg_len)
+
+                if dash_end > dash_start:
+                    p1 = (
+                        int(ax + ux * dash_start),
+                        int(ay + uy * dash_start)
+                    )
+                    p2 = (
+                        int(ax + ux * dash_end),
+                        int(ay + uy * dash_end)
+                    )
+
+                    pygame.draw.line(
+                        self.screen,
+                        color,
+                        p1,
+                        p2,
+                        width
+                    )
+
+                pos += dash_len + gap_len
+
+    def _draw_crosswalk(self, center, orientation="horizontal",
+                        length=58, stripe_width=7, stripe_gap=7,
+                        count=6):
+        """Paso peatonal limpio y discreto."""
+        cx, cy = center
+
+        if orientation == "horizontal":
+            total = count * stripe_width + (count - 1) * stripe_gap
+            start = cx - total / 2
+
+            for i in range(count):
+                x = int(start + i * (stripe_width + stripe_gap))
+                pygame.draw.rect(
+                    self.screen,
+                    LANE,
+                    (x, int(cy - length / 2), stripe_width, length),
+                    border_radius=2
+                )
+        else:
+            total = count * stripe_width + (count - 1) * stripe_gap
+            start = cy - total / 2
+
+            for i in range(count):
+                y = int(start + i * (stripe_width + stripe_gap))
+                pygame.draw.rect(
+                    self.screen,
+                    LANE,
+                    (int(cx - length / 2), y, length, stripe_width),
+                    border_radius=2
+                )
+
+    def draw_road(self, points, width=None):
         if len(points) < 2:
             return
 
         width = width or self.road_width
 
-        pygame.draw.lines(
-            self.screen,
-            ROAD_DARK,
-            False,
+        # --------------------------------------------------------
+        # 1. Sombra exterior: separa la vía del fondo.
+        # --------------------------------------------------------
+        self._polyline_round(
+            ROAD_SHADOW,
+            points,
+            width + 28
+        )
+
+        # --------------------------------------------------------
+        # 2. Vereda / bordillo exterior.
+        # --------------------------------------------------------
+        self._polyline_round(
+            SIDEWALK,
+            points,
+            width + 20
+        )
+
+        # Franja interior de la vereda para darle profundidad.
+        self._polyline_round(
+            SIDEWALK_LIGHT,
             points,
             width + 12
         )
 
-        outer_r = (width + 12) // 2
+        # --------------------------------------------------------
+        # 3. Bordillo oscuro y asfalto.
+        # --------------------------------------------------------
+        self._polyline_round(
+            ROAD_DARK,
+            points,
+            width + 8
+        )
 
-        for x, y in points:
-
-            pygame.draw.circle(
-                self.screen,
-                ROAD_DARK,
-                (int(x), int(y)),
-                outer_r
-            )
-
-        pygame.draw.lines(
-            self.screen,
+        self._polyline_round(
             ROAD,
-            False,
             points,
             width
         )
 
-        inner_r = width // 2
+        # Brillo sutil en el borde de la calzada.
+        self._polyline_round(
+            ROAD_HIGHLIGHT,
+            points,
+            2
+        )
 
-        for x, y in points:
+        # --------------------------------------------------------
+        # 4. Línea central discontinua.
+        # --------------------------------------------------------
+        self._draw_dashes(
+            points,
+            width=4,
+            dash_len=25,
+            gap_len=21,
+            color=LANE
+        )
 
+    def _draw_road_details(self):
+        """Detalles decorativos de la red vial para evitar un aspecto plano."""
+
+        # Pasos peatonales donde las vías desembocan cerca de los edificios.
+        self._draw_crosswalk(
+            (430, 575),
+            "horizontal",
+            length=54,
+            stripe_width=6,
+            stripe_gap=7,
+            count=6
+        )
+        self._draw_crosswalk(
+            (1160, 575),
+            "horizontal",
+            length=54,
+            stripe_width=6,
+            stripe_gap=7,
+            count=6
+        )
+
+        self._draw_crosswalk(
+            (530, 790),
+            "vertical",
+            length=52,
+            stripe_width=6,
+            stripe_gap=7,
+            count=5
+        )
+        self._draw_crosswalk(
+            (1070, 790),
+            "vertical",
+            length=52,
+            stripe_width=6,
+            stripe_gap=7,
+            count=5
+        )
+
+        # Pequeñas islas de transición en las curvas superiores.
+        for x, y in [(430, 610), (1160, 610)]:
             pygame.draw.circle(
                 self.screen,
-                ROAD,
-                (int(x), int(y)),
-                inner_r
+                CURB,
+                (x, y),
+                13
+            )
+            pygame.draw.circle(
+                self.screen,
+                SIDEWALK_LIGHT,
+                (x, y),
+                8
             )
 
-        # Línea discontinua
-        dash_len = 22.0
-        gap_len = 20.0
-        drawing_dash = True
-        remaining = dash_len
+    def draw_game_paths(self):
+        # La red vial se dibuja primero para que los edificios y el jugador
+        # queden visualmente por encima.
+        for path in self.road_paths:
+            self.draw_road(path)
 
-        for a, b in zip(points[:-1], points[1:]):
+        self._draw_road_details()
 
-            ax, ay = a
-            bx, by = b
+        # --------------------------------------------------------
+        # ROTONDA CENTRAL
+        # --------------------------------------------------------
+        cx, cy = 790, 700
 
-            dx = bx - ax
-            dy = by - ay
+        # Sombra.
+        pygame.draw.circle(
+            self.screen,
+            ROAD_SHADOW,
+            (cx + 4, cy + 6),
+            self.roundabout_radius + 17
+        )
 
-            length = math.hypot(dx, dy)
+        # Anillo de vereda.
+        pygame.draw.circle(
+            self.screen,
+            SIDEWALK,
+            (cx, cy),
+            self.roundabout_radius + 14
+        )
 
-            if length <= 0:
-                continue
+        # Bordillo.
+        pygame.draw.circle(
+            self.screen,
+            ROAD_DARK,
+            (cx, cy),
+            self.roundabout_radius + 7
+        )
 
-            ux = dx / length
-            uy = dy / length
+        # Asfalto circular.
+        pygame.draw.circle(
+            self.screen,
+            ROAD,
+            (cx, cy),
+            self.roundabout_radius
+        )
 
-            pos = 0.0
+        # Línea interior del anillo.
+        pygame.draw.circle(
+            self.screen,
+            LANE,
+            (cx, cy),
+            68,
+            4
+        )
 
-            while pos < length:
+        # Isla central.
+        pygame.draw.circle(
+            self.screen,
+            CURB,
+            (cx, cy),
+            self.roundabout_inner + 8
+        )
 
-                step = min(
-                    remaining,
-                    length - pos
-                )
+        pygame.draw.circle(
+            self.screen,
+            SIDEWALK_LIGHT,
+            (cx, cy),
+            self.roundabout_inner + 2
+        )
 
-                if drawing_dash and step > 0:
+        pygame.draw.circle(
+            self.screen,
+            (86, 132, 71),
+            (cx, cy),
+            34
+        )
 
-                    p1 = (
-                        int(ax + ux * pos),
-                        int(ay + uy * pos)
-                    )
+        pygame.draw.circle(
+            self.screen,
+            (64, 106, 58),
+            (cx, cy),
+            24
+        )
 
-                    p2 = (
-                        int(ax + ux * (pos + step)),
-                        int(ay + uy * (pos + step))
-                    )
+        # Arbusto central.
+        for ox, oy, radius in [
+            (-13, -7, 13),
+            (10, -9, 12),
+            (1, 10, 14),
+            (17, 7, 9)
+        ]:
+            pygame.draw.circle(
+                self.screen,
+                (76, 122, 62),
+                (cx + ox, cy + oy),
+                radius
+            )
 
-                    pygame.draw.line(
-                        self.screen,
-                        (236, 231, 213),
-                        p1,
-                        p2,
-                        4
-                    )
+        # Poste/bandera central.
+        pygame.draw.rect(
+            self.screen,
+            (103, 72, 42),
+            (cx - 3, cy - 72, 6, 35),
+            border_radius=3
+        )
 
-                pos += step
-                remaining -= step
+        pygame.draw.polygon(
+            self.screen,
+            ORANGE_DARK,
+            [
+                (cx, cy - 76),
+                (cx + 45, cy - 55),
+                (cx, cy - 34)
+            ]
+        )
 
-                if remaining <= 0.001:
-
-                    drawing_dash = not drawing_dash
-
-                    remaining = (
-                        dash_len
-                        if drawing_dash
-                        else gap_len
-                    )
+        # Cuatro pequeños cruces peatonales alrededor de la rotonda.
+        self._draw_crosswalk(
+            (cx - self.roundabout_radius - 10, cy),
+            "vertical",
+            length=38,
+            stripe_width=5,
+            stripe_gap=5,
+            count=5
+        )
+        self._draw_crosswalk(
+            (cx + self.roundabout_radius + 10, cy),
+            "vertical",
+            length=38,
+            stripe_width=5,
+            stripe_gap=5,
+            count=5
+        )
+        self._draw_crosswalk(
+            (cx, cy - self.roundabout_radius - 10),
+            "horizontal",
+            length=38,
+            stripe_width=5,
+            stripe_gap=5,
+            count=5
+        )
+        self._draw_crosswalk(
+            (cx, cy + self.roundabout_radius + 10),
+            "horizontal",
+            length=38,
+            stripe_width=5,
+            stripe_gap=5,
+            count=5
+        )
 
 
     def draw_game_paths(self):
@@ -2071,7 +2356,7 @@ class Market:
 
         txt(
             self.screen,
-            "⚠  FUENTE NO RECOMENDADA",
+            "⚠  ESA OPCIÓN NO ES LA MEJOR",
             self.font["button"],
             RED,
             (768, 365),
@@ -2256,7 +2541,7 @@ class Market:
                         # Empezar
                         elif pygame.Rect(
                             1122,
-                            799,
+                            798,
                             368,
                             47
                         ).collidepoint(pos):
@@ -2363,6 +2648,7 @@ class Market:
 
 # ============================================================
 # EJECUCIÓN
+
 # ============================================================
 
 if __name__ == "__main__":

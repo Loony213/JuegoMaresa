@@ -16,17 +16,20 @@ pygame.init()
 WIDTH, HEIGHT = 1536, 864
 FPS = 60
 
-ORANGE = (238, 112, 0)
-ORANGE_DARK = (195, 82, 0)
-CREAM = (247, 242, 232)
-CREAM_2 = (255, 249, 239)
-DARK = (47, 58, 68)
-NAVY = (36, 64, 88)
-BLUE = (47, 128, 190)
+ORANGE = (239, 102, 8)
+ORANGE_DARK = (196, 72, 0)
+CREAM = (247, 244, 237)
+CREAM_2 = (255, 251, 245)
+DARK = (35, 48, 57)
+NAVY = (27, 43, 53)
+NAVY_2 = (39, 59, 70)
+BLUE = (59, 143, 211)
 GREEN = (46, 154, 89)
-RED = (205, 61, 44)
+RED = (203, 67, 51)
+PURPLE = (124, 88, 171)
 GRAY = (115, 126, 137)
-LIGHT_GRAY = (225, 229, 232)
+LIGHT_GRAY = (224, 227, 225)
+LINE = (220, 216, 208)
 WHITE = (255, 255, 255)
 
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -127,6 +130,210 @@ def draw_centered_lines(
         surface.blit(img, rect)
 
         y += img.get_height() + gap
+
+
+def shadow(surface, rect, radius=20, offset=7, alpha=28):
+    layer = pygame.Surface(
+        (rect.width + 30, rect.height + 30), pygame.SRCALPHA
+    )
+    pygame.draw.rect(
+        layer,
+        (15, 25, 31, alpha),
+        (10, 10 + offset, rect.width, rect.height),
+        border_radius=radius
+    )
+    surface.blit(layer, (rect.x - 10, rect.y - 10))
+
+
+def premium_panel(surface, rect, fill=WHITE, border=LINE,
+                  radius=24, width=1):
+    shadow(surface, rect, radius=radius, offset=6, alpha=25)
+    rounded_rect(surface, rect, fill, radius, width, border)
+
+
+def draw_chip(surface, rect, label, fill, color=WHITE):
+    rounded_rect(surface, rect, fill, rect.height // 2)
+    text(surface, label, pygame.font.SysFont("Arial", 13, bold=True),
+         color, rect.center, True)
+
+
+def draw_progress_dots(surface, x, y, current, total):
+    for i in range(total):
+        if i < current:
+            color = ORANGE
+            radius = 7
+        elif i == current:
+            color = ORANGE
+            radius = 9
+        else:
+            color = (207, 211, 210)
+            radius = 6
+        pygame.draw.circle(surface, color, (x + i * 28, y), radius)
+
+
+def draw_glow(surface, center, radius, color, alpha=20):
+    layer = pygame.Surface((radius * 2 + 40, radius * 2 + 40), pygame.SRCALPHA)
+    for r in range(radius, 20, -12):
+        a = max(1, int(alpha * (radius - r + 12) / radius))
+        pygame.draw.circle(layer, (*color, a),
+                           (radius + 20, radius + 20), r)
+    surface.blit(layer, (center[0] - radius - 20, center[1] - radius - 20))
+
+
+def draw_starburst(surface, center, radius, color):
+    x, y = center
+    for angle in range(0, 360, 45):
+        rad = math.radians(angle)
+        x1 = int(x + math.cos(rad) * (radius - 7))
+        y1 = int(y + math.sin(rad) * (radius - 7))
+        x2 = int(x + math.cos(rad) * radius)
+        y2 = int(y + math.sin(rad) * radius)
+        pygame.draw.line(surface, color, (x1, y1), (x2, y2), 2)
+
+
+# ============================================================
+# UI PREMIUM — DATA CHEF
+# ============================================================
+
+def panel_shadow(surface, rect, radius=26, offset=10, alpha=55):
+    """Sombra suave multicapa para dar profundidad."""
+    for i in range(4, 0, -1):
+        a = max(4, alpha // (i + 1))
+        rr = pygame.Rect(
+            rect.x - i * 2,
+            rect.y + offset - i,
+            rect.width + i * 4,
+            rect.height + i * 4
+        )
+        layer = pygame.Surface(
+            (rr.width + 20, rr.height + 20),
+            pygame.SRCALPHA
+        )
+        pygame.draw.rect(
+            layer,
+            (10, 22, 29, a),
+            (10, 10, rr.width, rr.height),
+            border_radius=radius + i * 2
+        )
+        surface.blit(layer, (rr.x - 10, rr.y - 10))
+
+
+def draw_panel(surface, rect, fill, border=None, radius=24, width=1,
+               shadow_on=True):
+    if shadow_on:
+        panel_shadow(surface, rect, radius, 8, 42)
+    rounded_rect(
+        surface,
+        rect,
+        fill,
+        radius,
+        width,
+        border if border else fill
+    )
+
+
+def draw_grid(surface, rect, spacing=34, color=(255,255,255), alpha=10):
+    layer = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+    for x in range(0, rect.width + 1, spacing):
+        pygame.draw.line(layer, (*color, alpha), (x, 0), (x, rect.height), 1)
+    for y in range(0, rect.height + 1, spacing):
+        pygame.draw.line(layer, (*color, alpha), (0, y), (rect.width, y), 1)
+    surface.blit(layer, rect.topleft)
+
+
+def draw_data_nodes(surface, center, scale=1.0, t=0.0):
+    """Mini visual de datos: nodos + conexiones."""
+    cx, cy = center
+    pts = [
+        (cx - 82*scale, cy - 12*scale),
+        (cx - 25*scale, cy - 55*scale),
+        (cx + 44*scale, cy - 30*scale),
+        (cx + 76*scale, cy + 30*scale),
+        (cx + 8*scale, cy + 62*scale),
+        (cx - 55*scale, cy + 40*scale),
+    ]
+    for i in range(len(pts)):
+        pygame.draw.line(
+            surface,
+            (194, 214, 221),
+            pts[i],
+            pts[(i + 1) % len(pts)],
+            max(1, int(2 * scale))
+        )
+    pulse = 1 + math.sin(t * 3.0) * 0.12
+    for i, (x, y) in enumerate(pts):
+        r = int((7 if i % 2 == 0 else 5) * scale * pulse)
+        pygame.draw.circle(surface, ORANGE if i in (1,4) else WHITE,
+                           (int(x), int(y)), r)
+        pygame.draw.circle(surface, (255,255,255),
+                           (int(x), int(y)), r + 5, 1)
+
+
+def draw_ring(surface, center, radius, color, width=2, alpha=80):
+    layer = pygame.Surface((radius*2+30, radius*2+30), pygame.SRCALPHA)
+    pygame.draw.circle(
+        layer, (*color, alpha),
+        (radius+15, radius+15), radius, width
+    )
+    surface.blit(
+        layer,
+        (center[0]-radius-15, center[1]-radius-15)
+    )
+
+
+def draw_badge(surface, center, number, label):
+    cx, cy = center
+    pygame.draw.circle(surface, ORANGE, (cx, cy), 31)
+    pygame.draw.circle(surface, WHITE, (cx, cy), 31, 2)
+    text(surface, number, pygame.font.SysFont("Arial", 15, bold=True),
+         WHITE, (cx, cy-1), True)
+    text(surface, label, pygame.font.SysFont("Arial", 11, bold=True),
+         (188, 198, 202), (cx, cy+47), True)
+
+
+def draw_check_icon(surface, center, radius=16, fill=GREEN):
+    pygame.draw.circle(surface, fill, center, radius)
+    pygame.draw.line(
+        surface, WHITE,
+        (center[0]-6, center[1]),
+        (center[0]-1, center[1]+5),
+        3
+    )
+    pygame.draw.line(
+        surface, WHITE,
+        (center[0]-1, center[1]+5),
+        (center[0]+7, center[1]-6),
+        3
+    )
+
+
+def draw_arrow_button(surface, rect, label, hover=False):
+    draw = rect.move(0, -3 if hover else 0)
+    if hover:
+        panel_shadow(surface, draw, 20, 7, 55)
+    rounded_rect(
+        surface,
+        draw,
+        ORANGE_DARK if hover else ORANGE,
+        20
+    )
+    # pequeño chevron
+    pygame.draw.circle(surface, (255, 255, 255), (draw.right-31, draw.centery), 12)
+    pygame.draw.polygon(
+        surface, ORANGE,
+        [
+            (draw.right-35, draw.centery-5),
+            (draw.right-27, draw.centery),
+            (draw.right-35, draw.centery+5)
+        ]
+    )
+    text(
+        surface, label,
+        pygame.font.SysFont("Arial", 21, bold=True),
+        WHITE,
+        (draw.centerx-10, draw.centery),
+        True
+    )
 
 
 # ============================================================
@@ -477,175 +684,143 @@ class TriviaApp:
 
     def draw_background(self):
 
-        for y in range(HEIGHT):
+        # ====================================================
+        # COMPOSICIÓN: "LABORATORIO DE DATOS"
+        # ====================================================
 
-            if y < 150:
+        # Fondo principal
+        self.screen.fill(NAVY)
 
-                c = CREAM
-
-            else:
-
-                tt = min(
-                    1,
-                    (y - 150) / 714
-                )
-
-                c = (
-
-                    int(
-                        100 +
-                        (39 - 100) * tt
-                    ),
-
-                    int(
-                        174 +
-                        (56 - 174) * tt
-                    ),
-
-                    int(
-                        220 +
-                        (67 - 220) * tt
-                    )
-
-                )
-
+        # Panel izquierdo azul profundo
+        left = pygame.Rect(0, 112, 710, 648)
+        for y in range(left.height):
+            t = y / max(1, left.height)
+            col = (
+                int(42 - 12*t),
+                int(105 - 28*t),
+                int(139 - 25*t)
+            )
             pygame.draw.line(
-                self.screen,
-                c,
-                (0, y),
-                (WIDTH, y)
+                self.screen, col,
+                (left.x, left.y+y),
+                (left.right, left.y+y)
             )
 
-        # Zona inferior
+        # Panel derecho marfil
+        right = pygame.Rect(710, 112, 826, 648)
+        pygame.draw.rect(self.screen, CREAM_2, right)
+
+        # Unión visual
         pygame.draw.rect(
-
-            self.screen,
-
-            (222, 216, 205),
-
-            (
-                0,
-                690,
-                WIDTH,
-                HEIGHT - 690
-            )
-
+            self.screen, ORANGE,
+            (700, 112, 10, 648)
         )
 
-        # Burbujas
+        # Grid técnico en el lado izquierdo
+        draw_grid(
+            self.screen,
+            pygame.Rect(0, 112, 710, 648),
+            42,
+            WHITE,
+            8
+        )
+
+        # Círculos de profundidad detrás del chef
+        draw_ring(self.screen, (310, 470), 245, WHITE, 2, 24)
+        draw_ring(self.screen, (310, 470), 195, ORANGE, 2, 90)
+        draw_ring(self.screen, (310, 470), 145, WHITE, 1, 30)
+
+        # Halo
+        draw_glow(
+            self.screen, (310, 450),
+            220, (255, 152, 53), 18
+        )
+
+        # Elementos flotantes
         for bubble in self.bubbles:
+            bubble.draw(self.screen)
 
-            bubble.draw(
-                self.screen
-            )
-
-        # Nubes
-        self.draw_cloud(
-            70,
-            190,
-            1.0
+        # Sol gráfico en esquina derecha
+        draw_glow(
+            self.screen, (1430, 175),
+            100, (255, 166, 60), 10
         )
-
-        self.draw_cloud(
-            1435,
-            210,
-            0.9
-        )
-
-
-    def draw_cloud(
-        self,
-        x,
-        y,
-        scale
-    ):
-
-        col = WHITE
-
         pygame.draw.circle(
-
-            self.screen,
-            col,
-
-            (
-                int(x),
-                int(y)
-            ),
-
-            int(30 * scale)
-
+            self.screen, (255, 239, 212),
+            (1430, 175), 66
         )
-
         pygame.draw.circle(
-
-            self.screen,
-            col,
-
-            (
-                int(
-                    x +
-                    40 * scale
-                ),
-
-                int(
-                    y -
-                    15 * scale
-                )
-            ),
-
-            int(42 * scale)
-
+            self.screen, CREAM_2,
+            (1430, 175), 48
         )
 
-        pygame.draw.circle(
+        # Microdecoraciones
+        for x, y, r in [
+            (64, 175, 3), (650, 190, 4), (675, 690, 3),
+            (744, 151, 3), (1480, 710, 3), (1320, 710, 2)
+        ]:
+            pygame.draw.circle(self.screen, (178, 202, 211), (x, y), r)
 
-            self.screen,
-            col,
-
-            (
-                int(
-                    x +
-                    85 * scale
-                ),
-
-                int(y)
-            ),
-
-            int(32 * scale)
-
-        )
-
+        # Footer
         pygame.draw.rect(
-
-            self.screen,
-
-            col,
-
-            pygame.Rect(
-
-                int(
-                    x -
-                    25 * scale
-                ),
-
-                int(y),
-
-                int(
-                    140 * scale
-                ),
-
-                int(
-                    35 * scale
-                )
-
-            ),
-
-            border_radius=int(
-                15 * scale
-            )
-
+            self.screen, (232, 228, 219),
+            (0, 760, WIDTH, 104)
+        )
+        pygame.draw.line(
+            self.screen, (211, 205, 195),
+            (70, 760), (1466, 760), 1
         )
 
+        text(
+            self.screen,
+            "DATA CHEF",
+            pygame.font.SysFont("Arial", 12, bold=True),
+            DARK, (70, 802)
+        )
+        text(
+            self.screen,
+            "ACADEMIA DE CALIDAD DE DATOS",
+            pygame.font.SysFont("Arial", 12),
+            GRAY, (180, 802)
+        )
+
+        # Progreso general
+        steps = [
+            ("01", "PREPARAR"),
+            ("02", "LIMPIAR"),
+            ("03", "RETAR"),
+            ("04", "COCINAR"),
+        ]
+        start_x = 930
+        for i, (num, label) in enumerate(steps):
+            x = start_x + i * 125
+            active = i == 2
+            pygame.draw.circle(
+                self.screen,
+                ORANGE if active else (190, 193, 191),
+                (x, 807),
+                14
+            )
+            text(
+                self.screen, num,
+                pygame.font.SysFont("Arial", 10, bold=True),
+                WHITE if active else CREAM_2,
+                (x, 807), True
+            )
+            text(
+                self.screen, label,
+                pygame.font.SysFont("Arial", 10, bold=True),
+                DARK if active else GRAY,
+                (x + 25, 801)
+            )
+            if i < len(steps)-1:
+                pygame.draw.line(
+                    self.screen,
+                    (190, 193, 191),
+                    (x+16, 807),
+                    (x+105, 807),
+                    2
+                )
 
     # ========================================================
     # HEADER
@@ -653,97 +828,80 @@ class TriviaApp:
 
     def draw_header(self):
 
-        pygame.draw.rect(
-
-            self.screen,
-
-            ORANGE,
-
-            (
-                0,
-                0,
-                WIDTH,
-                112
-            )
-
+        pygame.draw.rect(self.screen, WHITE, (0, 0, WIDTH, 112))
+        pygame.draw.rect(self.screen, ORANGE, (0, 0, WIDTH, 6))
+        pygame.draw.line(
+            self.screen, (228, 225, 219),
+            (0, 111), (WIDTH, 111), 1
         )
 
         # Logo
         if self.logo:
-
-            self.screen.blit(
-                self.logo,
-                (45, 22)
-            )
-
-        else:
-
-            pygame.draw.circle(
-
-                self.screen,
-                WHITE,
-
-                (
-                    78,
-                    55
-                ),
-
-                26
-
-            )
-
-            text(
-
-                self.screen,
-
-                "maresa",
-
-                self.fonts["small"],
-
-                WHITE,
-
-                (
-                    45,
-                    83
+            logo = self.logo
+            if logo.get_width() > 150:
+                ratio = 150 / logo.get_width()
+                logo = pygame.transform.smoothscale(
+                    logo,
+                    (150, max(1, int(logo.get_height() * ratio)))
                 )
+            self.screen.blit(logo, (46, 20))
 
-            )
-
-        # Título
-        text(
-
-            self.screen,
-
-            "LA COCINA DE LOS DATOS",
-
-            self.fonts["title"],
-
-            WHITE,
-
-            (
-                405,
-                30
-            )
-
+        # Marca del producto
+        pygame.draw.line(
+            self.screen, LINE,
+            (220, 25), (220, 86), 1
         )
 
         text(
+            self.screen, "LA COCINA",
+            self.fonts["title"], DARK, (255, 22)
+        )
+        text(
+            self.screen, "DE LOS DATOS",
+            self.fonts["title"], ORANGE, (485, 22)
+        )
 
-            self.screen,
+        # Módulo de etapa
+        stage = pygame.Rect(845, 22, 325, 68)
+        rounded_rect(self.screen, stage, (246, 244, 240), 18, 1, LINE)
 
-            "PASO 3 • RETO DEL CHEF",
+        pygame.draw.circle(
+            self.screen, ORANGE, (875, 56), 21
+        )
+        text(
+            self.screen, "03",
+            pygame.font.SysFont("Arial", 13, bold=True),
+            WHITE, (875, 56), True
+        )
 
+        text(
+            self.screen, "RETO DEL CHEF",
             self.fonts["medium_bold"],
-
-            WHITE,
-
-            (
-                1280,
-                47
-            )
-
+            DARK, (908, 31)
+        )
+        text(
+            self.screen, "COMPROBACIÓN DE APRENDIZAJE",
+            pygame.font.SysFont("Arial", 13),
+            GRAY, (908, 60)
         )
 
+        # Estado
+        status = pygame.Rect(1250, 21, 235, 70)
+        rounded_rect(self.screen, status, NAVY, 20)
+
+        pygame.draw.circle(
+            self.screen, ORANGE, (1277, 45), 5
+        )
+        text(
+            self.screen, "MISIÓN ACTIVA",
+            pygame.font.SysFont("Arial", 13, bold=True),
+            WHITE, (1292, 31)
+        )
+        text(
+            self.screen, "3 PREGUNTAS",
+            pygame.font.SysFont("Arial", 13),
+            (190, 204, 210), (1292, 57)
+        )
 
     # ========================================================
     # CHEF
@@ -751,270 +909,135 @@ class TriviaApp:
 
     def draw_chef_area(self):
 
-        # Sombra
-        pygame.draw.ellipse(
-
+        # Etiqueta
+        chip = pygame.Rect(55, 138, 205, 34)
+        rounded_rect(
+            self.screen, chip,
+            (20, 65, 82), 17, 1, (103, 155, 176)
+        )
+        pygame.draw.circle(
+            self.screen, GREEN, (76, 155), 5
+        )
+        text(
             self.screen,
+            "CHEF · GUÍA DE LA MISIÓN",
+            pygame.font.SysFont("Arial", 12, bold=True),
+            WHITE, (90, 147)
+        )
 
-            (
-                177,
-                170,
-                160
-            ),
+        # Visual de datos
+        draw_data_nodes(
+            self.screen, (120, 600),
+            0.85, self.time
+        )
 
-            (
-                170,
-                650,
-                350,
-                38
-            )
-
+        # Plataforma del chef
+        pygame.draw.ellipse(
+            self.screen,
+            (19, 55, 70),
+            (112, 676, 395, 40)
+        )
+        pygame.draw.ellipse(
+            self.screen,
+            (232, 226, 215),
+            (135, 667, 345, 28)
         )
 
         # Chef
         if self.chef:
-
-            bob = (
-                math.sin(
-                    self.time * 2.0
-                )
-                * 7
-            )
-
+            bob = math.sin(self.time * 2.0) * 4
             rect = self.chef.get_rect()
-
-            rect.midbottom = (
-
-                340,
-
-                int(
-                    685 +
-                    bob
-                )
-
-            )
-
-            self.screen.blit(
-                self.chef,
-                rect
-            )
-
+            rect.midbottom = (315, int(680 + bob))
+            self.screen.blit(self.chef, rect)
         else:
-
-            # Chef fallback
             pygame.draw.circle(
-
-                self.screen,
-
-                (
-                    255,
-                    218,
-                    177
-                ),
-
-                (
-                    340,
-                    535
-                ),
-
-                72
-
+                self.screen, (255, 218, 177),
+                (315, 450), 70
             )
 
-            pygame.draw.circle(
-
-                self.screen,
-
-                WHITE,
-
-                (
-                    340,
-                    450
-                ),
-
-                58
-
-            )
-
-            pygame.draw.circle(
-
-                self.screen,
-
-                WHITE,
-
-                (
-                    300,
-                    470
-                ),
-
-                34
-
-            )
-
-            pygame.draw.circle(
-
-                self.screen,
-
-                WHITE,
-
-                (
-                    380,
-                    470
-                ),
-
-                34
-
-            )
-
-            pygame.draw.rect(
-
-                self.screen,
-
-                WHITE,
-
-                (
-                    270,
-                    595,
-                    140,
-                    90
-                ),
-
-                border_radius=30
-
-            )
-
-            text(
-
-                self.screen,
-
-                "CHEF",
-
-                self.fonts["medium_bold"],
-
-                ORANGE,
-
-                (
-                    340,
-                    635
-                ),
-
-                True
-
-            )
-
-        # ----------------------------------------------------
-        # BURBUJA
-        # ----------------------------------------------------
-
-        bubble = pygame.Rect(
-
-            475,
-            170,
-            500,
-            175
-
-        )
-
+        # Speech bubble con cola integrada
+        bubble = pygame.Rect(370, 190, 285, 190)
+        panel_shadow(self.screen, bubble, 25, 7, 45)
         rounded_rect(
-
-            self.screen,
-
-            bubble,
-
-            CREAM_2,
-
-            32,
-
-            3,
-
-            (
-                231,
-                182,
-                122
-            )
-
+            self.screen, bubble,
+            WHITE, 25, 2, (238, 173, 92)
         )
 
-        # Pico
         pygame.draw.polygon(
-
-            self.screen,
-
-            CREAM_2,
-
+            self.screen, WHITE,
             [
-
-                (
-                    500,
-                    305
-                ),
-
-                (
-                    450,
-                    350
-                ),
-
-                (
-                    545,
-                    318
-                )
-
+                (400, 340),
+                (342, 390),
+                (414, 366)
             ]
+        )
+        pygame.draw.line(
+            self.screen, (238, 173, 92),
+            (399, 340), (342, 390), 2
+        )
 
+        # Acento
+        pygame.draw.rect(
+            self.screen, ORANGE,
+            (398, 215, 45, 5),
+            border_radius=2
+        )
+
+        text(
+            self.screen,
+            "¡MUY BIEN!",
+            pygame.font.SysFont("Arial", 14, bold=True),
+            ORANGE, (398, 232)
+        )
+
+        draw_centered_lines(
+            self.screen,
+            [
+                "Ya limpiamos",
+                "nuestros datos."
+            ],
+            self.fonts["medium_bold"],
+            DARK, 512, 258, 5
+        )
+
+        text(
+            self.screen,
+            "Ahora comprobemos cuánto aprendiste.",
+            pygame.font.SysFont("Arial", 13),
+            GRAY, (512, 323), True
         )
 
         pygame.draw.line(
-
+            self.screen, LINE,
+            (405, 348), (620, 348), 1
+        )
+        text(
             self.screen,
-
-            (
-                231,
-                182,
-                122
-            ),
-
-            (
-                500,
-                305
-            ),
-
-            (
-                450,
-                350
-            ),
-
-            3
-
+            "CALIDAD  →  CONFIABILIDAD",
+            pygame.font.SysFont("Arial", 11, bold=True),
+            ORANGE, (512, 359), True
         )
 
-        lines = [
-
-            "“¡Muy bien! Ya limpiamos nuestros datos.",
-
-            "Ahora veamos cuánto aprendiste",
-
-            "sobre la calidad de la información.”"
-
-        ]
-
-        draw_centered_lines(
-
-            self.screen,
-
-            lines,
-
-            self.fonts["medium_bold"],
-
-            DARK,
-
-            735,
-
-            205,
-
-            5
-
+        # Mini tarjeta de misión en el lado izquierdo
+        mini = pygame.Rect(52, 570, 165, 70)
+        rounded_rect(
+            self.screen, mini, (21, 67, 85), 16
         )
-
+        text(
+            self.screen, "MISIÓN 03",
+            pygame.font.SysFont("Arial", 11, bold=True),
+            ORANGE, (68, 586)
+        )
+        text(
+            self.screen, "CALIDAD DE DATOS",
+            pygame.font.SysFont("Arial", 12, bold=True),
+            WHITE, (68, 607)
+        )
+        text(
+            self.screen, "Reto desbloqueado",
+            pygame.font.SysFont("Arial", 10),
+            (180, 198, 202), (68, 625)
+        )
 
     # ========================================================
     # INTRO
@@ -1023,176 +1046,250 @@ class TriviaApp:
     def draw_intro(self):
 
         self.draw_background()
-
         self.draw_header()
-
         self.draw_chef_area()
 
-        card = pygame.Rect(
+        # ====================================================
+        # CONSOLA DEL RETO — LADO DERECHO
+        # ====================================================
 
-            990,
-            165,
-            460,
-            455
-
+        console = pygame.Rect(735, 138, 735, 590)
+        draw_panel(
+            self.screen, console,
+            (247, 244, 237),
+            (224, 171, 92),
+            30, 2
         )
 
+        # Header de consola
+        console_head = pygame.Rect(737, 140, 731, 112)
         rounded_rect(
+            self.screen, console_head,
+            NAVY, 28
+        )
+        pygame.draw.rect(
+            self.screen, NAVY,
+            (737, 205, 731, 47)
+        )
 
-            self.screen,
-
-            card,
-
-            CREAM_2,
-
-            30,
-
-            3,
-
-            ORANGE
-
+        # Número
+        pygame.draw.circle(
+            self.screen, ORANGE,
+            (780, 194), 29
+        )
+        pygame.draw.circle(
+            self.screen, WHITE,
+            (780, 194), 29, 2
+        )
+        text(
+            self.screen, "03",
+            pygame.font.SysFont("Arial", 15, bold=True),
+            WHITE, (780, 194), True
         )
 
         text(
-
             self.screen,
-
             "RETO DEL CHEF",
+            pygame.font.SysFont("Arial", 34, bold=True),
+            WHITE, (823, 166)
+        )
+        text(
+            self.screen,
+            "PON A PRUEBA TU CRITERIO",
+            pygame.font.SysFont("Arial", 13, bold=True),
+            (187, 204, 211), (824, 211)
+        )
 
-            self.fonts["title"],
+        # Estado de misión en el header
+        text(
+            self.screen,
+            "NIVEL 03",
+            pygame.font.SysFont("Arial", 11, bold=True),
+            ORANGE, (1378, 168), True
+        )
+        draw_progress_dots(
+            self.screen, 1350, 207, 0, 3
+        )
 
-            ORANGE,
+        # ====================================================
+        # BLOQUE VISUAL CENTRAL
+        # ====================================================
 
-            (
-                1220,
-                225
-            ),
+        # Círculo principal
+        center = (1105, 350)
 
-            True
-
+        # Anillos
+        draw_ring(
+            self.screen, center, 103,
+            (238, 169, 91), 2, 75
+        )
+        draw_ring(
+            self.screen, center, 84,
+            (255, 199, 126), 2, 90
+        )
+        draw_glow(
+            self.screen, center, 92,
+            (255, 164, 57), 14
         )
 
         pygame.draw.circle(
-
             self.screen,
+            (255, 239, 214),
+            center, 68
+        )
+        pygame.draw.circle(
+            self.screen,
+            WHITE,
+            center, 55, 2
+        )
 
-            (
-                255,
-                237,
-                211
-            ),
+        # Signo de pregunta
+        text(
+            self.screen,
+            "?",
+            pygame.font.SysFont("Arial", 65, bold=True),
+            ORANGE,
+            (center[0], center[1]-4),
+            True
+        )
 
-            (
-                1220,
-                330
-            ),
+        # Estrellitas
+        for dx, dy in [(-105,-70), (104,-48), (96,76), (-93,72)]:
+            pygame.draw.line(
+                self.screen, (239, 169, 91),
+                (center[0]+dx-5, center[1]+dy),
+                (center[0]+dx+5, center[1]+dy), 2
+            )
+            pygame.draw.line(
+                self.screen, (239, 169, 91),
+                (center[0]+dx, center[1]+dy-5),
+                (center[0]+dx, center[1]+dy+5), 2
+            )
 
-            62
+        # ====================================================
+        # TITULAR + DESCRIPCIÓN
+        # ====================================================
 
+        # ====================================================
+        # TITULAR — bloque compacto
+        # ====================================================
+
+        text(
+            self.screen,
+            "¿ESTÁS LISTO?",
+            pygame.font.SysFont("Arial", 34, bold=True),
+            DARK,
+            (1105, 448),
+            True
         )
 
         text(
-
             self.screen,
-
-            "?",
-
-            self.fonts["big"],
-
+            "PARA EL RETO DEL CHEF",
+            pygame.font.SysFont("Arial", 21, bold=True),
             ORANGE,
-
-            (
-                1220,
-                326
-            ),
-
+            (1105, 480),
             True
-
         )
 
-        intro_lines = [
+        # La descripción queda en una zona propia para que
+        # nunca sea invadida por las tarjetas inferiores.
+        draw_centered_lines(
+            self.screen,
+            [
+                "Responde 3 preguntas rápidas sobre",
+                "limpieza, validación y calidad de datos."
+            ],
+            pygame.font.SysFont("Arial", 16),
+            GRAY,
+            1105, 507, 3
+        )
 
-            "Responde 3 preguntas rápidas",
+        # Separador visual
+        pygame.draw.line(
+            self.screen,
+            (224, 218, 207),
+            (810, 552),
+            (1400, 552),
+            1
+        )
 
-            "sobre lo que acabas de aprender",
+        # ====================================================
+        # 3 MICRO-TARJETAS — ZONA INFERIOR
+        # ====================================================
 
-            "en la limpieza y validación",
-
-            "de los datos."
-
+        cards = [
+            ("01", "LIMPIEZA", "Detecta"),
+            ("02", "VALIDACIÓN", "Comprueba"),
+            ("03", "CALIDAD", "Decide"),
         ]
 
-        draw_centered_lines(
+        for i, (num, title, sub) in enumerate(cards):
+            x = 790 + i * 215
+            r = pygame.Rect(x, 565, 195, 58)
 
+            rounded_rect(
+                self.screen, r,
+                WHITE, 14, 1, LINE
+            )
+
+            # Indicador lateral de etapa
+            pygame.draw.rect(
+                self.screen,
+                ORANGE if i == 2 else (207, 211, 209),
+                (r.x, r.y, 5, r.height),
+                border_radius=3
+            )
+
+            pygame.draw.circle(
+                self.screen,
+                ORANGE if i == 2 else (207, 211, 209),
+                (r.x + 30, r.centery),
+                13
+            )
+
+            text(
+                self.screen, num,
+                pygame.font.SysFont("Arial", 9, bold=True),
+                WHITE if i == 2 else CREAM_2,
+                (r.x + 30, r.centery), True
+            )
+
+            text(
+                self.screen, title,
+                pygame.font.SysFont("Arial", 11, bold=True),
+                DARK, (r.x + 52, r.y + 13)
+            )
+
+            text(
+                self.screen, sub,
+                pygame.font.SysFont("Arial", 10),
+                GRAY, (r.x + 52, r.y + 35)
+            )
+
+        # ====================================================
+        # CTA — separado de las tarjetas
+        # ====================================================
+
+        btn = pygame.Rect(970, 638, 275, 53)
+        mouse = self.logical(pygame.mouse.get_pos())
+        hover = btn.collidepoint(mouse)
+
+        draw_arrow_button(
             self.screen,
-
-            intro_lines,
-
-            self.fonts["medium"],
-
-            DARK,
-
-            1220,
-
-            405,
-
-            9
-
-        )
-
-        btn = pygame.Rect(
-
-            1095,
-            535,
-            250,
-            62
-
-        )
-
-        mouse = self.logical(
-            pygame.mouse.get_pos()
-        )
-
-        hover = btn.collidepoint(
-            mouse
-        )
-
-        offset = -4 if hover else 0
-
-        rounded_rect(
-
-            self.screen,
-
-            btn.move(
-                0,
-                offset
-            ),
-
-            ORANGE,
-
-            18
-
+            btn,
+            "COMENZAR RETO",
+            hover
         )
 
         text(
-
             self.screen,
-
-            "COMENZAR  ▶",
-
-            self.fonts["option"],
-
-            WHITE,
-
-            (
-                btn.centerx,
-                btn.centery + offset
-            ),
-
+            "Pulsa para iniciar la primera pregunta",
+            pygame.font.SysFont("Arial", 10),
+            GRAY,
+            (1108, 706),
             True
-
         )
-
 
     # ========================================================
     # QUIZ
@@ -1201,433 +1298,301 @@ class TriviaApp:
     def draw_quiz(self):
 
         self.draw_background()
-
         self.draw_header()
-
         self.draw_chef_area()
 
-        q = self.questions[
-            self.current_question
-        ]
+        q = self.questions[self.current_question]
 
-        # Panel principal
-        panel = pygame.Rect(
-
-            790,
-            145,
-            670,
-            570
-
+        # Panel de preguntas
+        panel = pygame.Rect(760, 135, 705, 575)
+        premium_panel(
+            self.screen, panel,
+            CREAM_2, (224, 173, 103), 30, 2
         )
 
+        # Encabezado interno
+        top = pygame.Rect(762, 137, 701, 105)
         rounded_rect(
-
-            self.screen,
-
-            panel,
-
-            CREAM_2,
-
-            28,
-
-            3,
-
-            (
-                206,
-                151,
-                91
-            )
-
+            self.screen, top,
+            NAVY, 28
+        )
+        pygame.draw.rect(
+            self.screen, NAVY,
+            (762, 190, 701, 52)
         )
 
-        # Indicador
-        indicator = pygame.Rect(
-
-            970,
-            172,
-            310,
-            42
-
-        )
-
-        rounded_rect(
-
+        # Pregunta / progreso
+        text(
             self.screen,
-
-            indicator,
-
-            NAVY,
-
-            18
-
+            "RETO DEL CHEF",
+            self.fonts["small"],
+            (186, 204, 211),
+            (800, 159)
         )
 
         text(
-
             self.screen,
-
             q["title"],
-
             self.fonts["medium_bold"],
-
             WHITE,
-
-            indicator.center,
-
-            True
-
+            (800, 185)
         )
 
-        # Progreso
-        for i in range(3):
+        draw_progress_dots(
+            self.screen,
+            1265, 170,
+            self.current_question + 1,
+            3
+        )
 
-            color = (
-                ORANGE
-                if i <= self.current_question
-                else LIGHT_GRAY
-            )
-
-            pygame.draw.circle(
-
-                self.screen,
-
-                color,
-
-                (
-                    1350 +
-                    i * 30,
-
-                    193
-                ),
-
-                7
-
-            )
+        text(
+            self.screen,
+            f"{self.current_question + 1}/3",
+            pygame.font.SysFont("Arial", 12, bold=True),
+            (194, 207, 213),
+            (1370, 185)
+        )
 
         # Pregunta
-        question_box = pygame.Rect(
+        question_box = pygame.Rect(815, 265, 595, 90)
+        pygame.draw.rect(
+            self.screen,
+            (250, 247, 241),
+            question_box,
+            border_radius=18
+        )
 
-            845,
-            240,
-            560,
-            95
-
+        pygame.draw.rect(
+            self.screen,
+            ORANGE,
+            (815, 265, 6, 90),
+            border_radius=3
         )
 
         lines = self.wrap_text(
-
             q["question"],
-
             self.fonts["question"],
-
-            question_box.width - 20
-
+            question_box.width - 55
         )
 
         draw_centered_lines(
-
             self.screen,
-
             lines,
-
             self.fonts["question"],
-
             DARK,
-
-            question_box.centerx,
-
-            question_box.y + 8,
-
+            question_box.centerx + 8,
+            question_box.y + 14,
             5
-
         )
 
-        # Opciones
+        # Instrucción
+        text(
+            self.screen,
+            "ELIGE LA RESPUESTA CORRECTA",
+            pygame.font.SysFont("Arial", 12, bold=True),
+            ORANGE,
+            (820, 375)
+        )
+
+        # ====================================================
+        # OPCIONES — CONTENIDAS DENTRO DEL PANEL
+        # ====================================================
+
         self.option_rects = []
 
-        option_y = 365
+        # Área útil interna del panel.
+        # Se deja margen suficiente para que ningún texto pueda
+        # invadir el borde izquierdo/derecho.
+        option_x = 800
+        option_w = 625
+        option_y = 405
+        option_h = 50
+        option_gap = 12
 
-        for i, (
-            letter,
-            label
-        ) in enumerate(
-            q["options"]
-        ):
+        option_font = pygame.font.SysFont("Arial", 21, bold=True)
+
+        for i, (letter, label) in enumerate(q["options"]):
 
             rect = pygame.Rect(
-
-                850,
-
-                option_y +
-                i * 75,
-
-                550,
-
-                58
-
+                option_x,
+                option_y + i * (option_h + option_gap),
+                option_w,
+                option_h
             )
 
-            self.option_rects.append(
-                rect
-            )
+            self.option_rects.append(rect)
 
-            mouse = self.logical(
-                pygame.mouse.get_pos()
-            )
-
-            hover = rect.collidepoint(
-                mouse
-            )
+            mouse = self.logical(pygame.mouse.get_pos())
+            hover = rect.collidepoint(mouse)
 
             fill = WHITE
-
-            border = (
-                190,
-                198,
-                202
-            )
+            border = (209, 211, 208)
 
             if self.selected == i:
-
                 if self.result is None:
-
-                    fill = (
-                        255,
-                        241,
-                        218
-                    )
-
+                    fill = (255, 240, 220)
                     border = ORANGE
-
                 elif i == q["correct"]:
-
-                    fill = (
-                        220,
-                        245,
-                        228
-                    )
-
+                    fill = (224, 246, 231)
                     border = GREEN
-
                 elif self.result is False:
-
-                    fill = (
-                        252,
-                        224,
-                        220
-                    )
-
+                    fill = (252, 226, 222)
                     border = RED
 
-            elif (
-                self.result is not None
-                and i == q["correct"]
-            ):
-
-                fill = (
-                    220,
-                    245,
-                    228
-                )
-
+            elif self.result is not None and i == q["correct"]:
+                fill = (224, 246, 231)
                 border = GREEN
 
-            elif (
-                hover
-                and self.result is None
-            ):
-
-                fill = (
-                    250,
-                    246,
-                    239
-                )
-
+            elif hover and self.result is None:
+                fill = (252, 248, 241)
                 border = ORANGE
 
             rounded_rect(
-
                 self.screen,
-
                 rect,
-
                 fill,
-
-                14,
-
+                15,
                 2,
-
                 border
-
             )
 
-            # Letra
+            # ------------------------------------------------
+            # Indicador A / B / C / D
+            # ------------------------------------------------
+
             pygame.draw.circle(
-
                 self.screen,
-
                 border,
-
-                (
-                    rect.x + 32,
-                    rect.centery
-                ),
-
-                18
-
+                (rect.x + 31, rect.centery),
+                16
             )
 
             text(
-
                 self.screen,
-
                 letter,
-
-                self.fonts["medium_bold"],
-
+                pygame.font.SysFont("Arial", 13, bold=True),
                 WHITE,
-
-                (
-                    rect.x + 32,
-                    rect.centery
-                ),
-
+                (rect.x + 31, rect.centery),
                 True
-
             )
 
-            text(
+            # ------------------------------------------------
+            # Texto de la respuesta
+            # ------------------------------------------------
+            # IMPORTANTE:
+            # antes se centraba el texto con un punto fijo.
+            # Ahora queda anclado desde la izquierda, dentro
+            # del rectángulo, evitando que respuestas largas
+            # se salgan visualmente del panel.
+            label_x = rect.x + 62
+            label_right = rect.right - 55
+            available_width = label_right - label_x
 
-                self.screen,
-
+            label_lines = self.wrap_text(
                 label,
-
-                self.fonts["option"],
-
-                DARK,
-
-                (
-                    rect.x + 68,
-                    rect.centery
-                ),
-
-                True
-
+                option_font,
+                available_width
             )
+
+            if len(label_lines) == 1:
+                text(
+                    self.screen,
+                    label_lines[0],
+                    option_font,
+                    DARK,
+                    (label_x, rect.centery),
+                    False
+                )
+            else:
+                # Protección adicional para respuestas largas.
+                total_h = len(label_lines) * option_font.get_height()
+                start_y = rect.centery - total_h // 2
+
+                for line in label_lines:
+                    text(
+                        self.screen,
+                        line,
+                        option_font,
+                        DARK,
+                        (label_x, start_y)
+                    )
+                    start_y += option_font.get_height()
+
+            # ------------------------------------------------
+            # Estado de respuesta
+            # ------------------------------------------------
+
+            if self.result is not None:
+
+                if i == q["correct"]:
+                    text(
+                        self.screen,
+                        "✓",
+                        self.fonts["medium_bold"],
+                        GREEN,
+                        (rect.right - 27, rect.centery),
+                        True
+                    )
+
+                elif self.selected == i and self.result is False:
+                    text(
+                        self.screen,
+                        "×",
+                        self.fonts["medium_bold"],
+                        RED,
+                        (rect.right - 27, rect.centery),
+                        True
+                    )
 
         # Feedback
         if self.result is not None:
 
             feedback = pygame.Rect(
-
-                835,
-                690,
-                580,
-                72
-
+                805, 670, 615, 82
             )
 
-            color = (
-                GREEN
-                if self.result
-                else RED
-            )
-
-            fill = (
-
-                (
-                    224,
-                    247,
-                    231
-                )
-
-                if self.result
-
-                else
-
-                (
-                    255,
-                    230,
-                    225
-                )
-
-            )
+            color = GREEN if self.result else RED
+            fill = (226, 247, 232) if self.result else (253, 231, 227)
 
             rounded_rect(
-
                 self.screen,
-
                 feedback,
-
                 fill,
-
-                16,
-
+                18,
                 2,
-
                 color
+            )
 
+            icon = "✓" if self.result else "!"
+            text(
+                self.screen,
+                icon,
+                self.fonts["feedback"],
+                color,
+                (835, feedback.centery),
+                True
             )
 
             msg = (
-
                 q["explanation"]
-
                 if self.result
-
-                else
-
-                "Casi... observa la respuesta correcta e inténtalo nuevamente."
-
-            )
-
-            text(
-
-                self.screen,
-
-                "✓"
-                if self.result
-                else "!",
-
-                self.fonts["feedback"],
-
-                color,
-
-                (
-                    feedback.x + 25,
-                    feedback.centery
-                ),
-
-                True
-
+                else "Casi... revisa el concepto y vuelve a intentarlo."
             )
 
             feedback_lines = self.wrap_text(
-
                 msg,
-
                 self.fonts["small"],
-
                 feedback.width - 75
-
             )
 
             draw_centered_lines(
-
                 self.screen,
-
                 feedback_lines,
-
                 self.fonts["small"],
-
                 DARK,
-
-                feedback.centerx + 15,
-
-                feedback.y + 15,
-
+                feedback.centerx + 10,
+                feedback.y + 17,
                 2
-
             )
 
 
@@ -1638,194 +1603,394 @@ class TriviaApp:
     def draw_completed(self):
 
         self.draw_background()
-
         self.draw_header()
 
-        card = pygame.Rect(
+        # ====================================================
+        # PANTALLA DE ÉXITO — COMPOSICIÓN FINAL
+        # ====================================================
+        # Todo el contenido queda dentro de una única tarjeta
+        # con márgenes internos consistentes.
 
-            360,
-            165,
-            820,
-            510
+        card = pygame.Rect(300, 145, 935, 570)
 
+        premium_panel(
+            self.screen,
+            card,
+            CREAM_2,
+            ORANGE,
+            34,
+            3
+        )
+
+        # ----------------------------------------------------
+        # Cabecera de la tarjeta
+        # ----------------------------------------------------
+
+        header = pygame.Rect(
+            card.x + 2,
+            card.y + 2,
+            card.width - 4,
+            82
         )
 
         rounded_rect(
-
             self.screen,
-
-            card,
-
-            CREAM_2,
-
-            35,
-
-            4,
-
-            ORANGE
-
+            header,
+            NAVY,
+            30
         )
 
-        pygame.draw.circle(
-
+        pygame.draw.rect(
             self.screen,
-
+            NAVY,
             (
-                255,
-                232,
-                196
-            ),
-
-            (
-                770,
-                310
-            ),
-
-            92
-
+                header.x,
+                header.bottom - 30,
+                header.width,
+                30
+            )
         )
 
+        # Pequeño indicador de estado
         pygame.draw.circle(
-
             self.screen,
-
             ORANGE,
-
-            (
-                770,
-                310
-            ),
-
-            72
-
+            (card.x + 43, card.y + 41),
+            6
         )
 
         text(
-
             self.screen,
+            "MISIÓN COMPLETADA",
+            pygame.font.SysFont("Arial", 13, bold=True),
+            (190, 204, 210),
+            (card.x + 60, card.y + 25)
+        )
 
-            "★",
+        text(
+            self.screen,
+            "RETO DEL CHEF",
+            pygame.font.SysFont("Arial", 11),
+            (145, 164, 173),
+            (card.x + 60, card.y + 48)
+        )
 
-            pygame.font.SysFont(
-                "Arial",
-                65,
-                bold=True
-            ),
+        # Progreso de las 3 preguntas
+        progress_x = card.right - 112
 
+        for i in range(3):
+            px = progress_x + i * 28
+
+            pygame.draw.circle(
+                self.screen,
+                GREEN,
+                (px, card.y + 32),
+                7
+            )
+
+            pygame.draw.circle(
+                self.screen,
+                WHITE,
+                (px, card.y + 32),
+                7,
+                1
+            )
+
+            text(
+                self.screen,
+                "✓",
+                pygame.font.SysFont("Arial", 9, bold=True),
+                WHITE,
+                (px, card.y + 32),
+                True
+            )
+
+        text(
+            self.screen,
+            "3 / 3",
+            pygame.font.SysFont("Arial", 11, bold=True),
+            (190, 204, 210),
+            (card.right - 55, card.y + 55),
+            True
+        )
+
+        # ----------------------------------------------------
+        # EMBLEMA DE LOGRO — SELLO DE CALIDAD
+        # ----------------------------------------------------
+        # Sustituye el círculo naranja vacío por un emblema con
+        # identidad visual: sello, escudo y check de calidad.
+
+        center = (card.centerx, 335)
+
+        draw_glow(
+            self.screen,
+            center,
+            112,
+            (255, 170, 65),
+            20
+        )
+
+        # Aura exterior
+        pygame.draw.circle(
+            self.screen,
+            (255, 239, 215),
+            center,
+            98
+        )
+
+        # Anillo técnico discontinuo
+        for angle in range(0, 360, 45):
+            rad = math.radians(angle)
+            x1 = int(center[0] + math.cos(rad) * 91)
+            y1 = int(center[1] + math.sin(rad) * 91)
+            x2 = int(center[0] + math.cos(rad) * 99)
+            y2 = int(center[1] + math.sin(rad) * 99)
+            pygame.draw.line(
+                self.screen,
+                (238, 169, 91),
+                (x1, y1),
+                (x2, y2),
+                3
+            )
+
+        # Medalla exterior
+        pygame.draw.circle(
+            self.screen,
+            ORANGE,
+            center,
+            76
+        )
+
+        pygame.draw.circle(
+            self.screen,
+            (255, 191, 115),
+            center,
+            76,
+            3
+        )
+
+        # Centro oscuro: da contraste y evita la sensación de vacío.
+        pygame.draw.circle(
+            self.screen,
+            NAVY,
+            center,
+            57
+        )
+
+        pygame.draw.circle(
+            self.screen,
             WHITE,
+            center,
+            48,
+            2
+        )
 
-            (
-                770,
-                302
-            ),
+        # Escudo de certificación
+        shield = [
+            (center[0], center[1] - 34),
+            (center[0] + 27, center[1] - 22),
+            (center[0] + 22, center[1] + 17),
+            (center[0], center[1] + 38),
+            (center[0] - 22, center[1] + 17),
+            (center[0] - 27, center[1] - 22),
+        ]
 
-            True
+        pygame.draw.polygon(
+            self.screen,
+            ORANGE,
+            shield
+        )
 
+        pygame.draw.lines(
+            self.screen,
+            WHITE,
+            True,
+            shield,
+            2
+        )
+
+        # Check grande de calidad
+        pygame.draw.line(
+            self.screen,
+            WHITE,
+            (center[0] - 15, center[1] + 1),
+            (center[0] - 4, center[1] + 12),
+            6
+        )
+
+        pygame.draw.line(
+            self.screen,
+            WHITE,
+            (center[0] - 4, center[1] + 12),
+            (center[0] + 18, center[1] - 13),
+            6
+        )
+
+        # Etiqueta inferior eliminada para mantener el emblema limpio
+        # y evitar que aparezca texto detrás de “¡RETO SUPERADO!”.
+
+        # Destellos laterales
+        draw_starburst(
+            self.screen,
+            (center[0] - 115, center[1] - 46),
+            9,
+            ORANGE
+        )
+
+        draw_starburst(
+            self.screen,
+            (center[0] + 115, center[1] + 38),
+            8,
+            (238, 169, 91)
+        )
+
+        # Tres pequeños nodos: representan las 3 preguntas superadas.
+        for i, dx in enumerate((-31, 0, 31)):
+            pygame.draw.circle(
+                self.screen,
+                GREEN,
+                (center[0] + dx, center[1] - 105),
+                5
+            )
+
+        # ----------------------------------------------------
+        # MENSAJE PRINCIPAL
+        # ----------------------------------------------------
+
+        title_font = pygame.font.SysFont(
+            "Arial",
+            46,
+            bold=True
         )
 
         text(
-
             self.screen,
-
-            "¡EXCELENTE TRABAJO!",
-
-            self.fonts["big"],
-
+            "¡RETO SUPERADO!",
+            title_font,
             ORANGE,
-
-            (
-                770,
-                425
-            ),
-
+            (card.centerx, 450),
             True
+        )
 
+        # Línea de acento debajo del título
+        pygame.draw.rect(
+            self.screen,
+            ORANGE,
+            (
+                card.centerx - 35,
+                478,
+                70,
+                4
+            ),
+            border_radius=2
         )
 
         completed_lines = [
-
-            "Ahora sabes que antes de analizar información",
-
-            "debemos asegurarnos de que nuestros datos",
-
-            "sean confiables y tengan calidad."
-
+            "Has demostrado que puedes identificar problemas",
+            "de calidad y tomar mejores decisiones con los datos."
         ]
 
         draw_centered_lines(
-
             self.screen,
-
             completed_lines,
-
             self.fonts["medium_bold"],
-
             DARK,
-
-            770,
-
-            495,
-
-            8
-
+            card.centerx,
+            500,
+            6
         )
 
-        btn = pygame.Rect(
+        # ----------------------------------------------------
+        # RESULTADO + CTA
+        # ----------------------------------------------------
+        # Ambos elementos forman una única fila y están
+        # calculados desde los límites de la tarjeta.
 
-            600,
-            595,
-            340,
-            64
+        bottom_y = 585
 
-        )
-
-        mouse = self.logical(
-            pygame.mouse.get_pos()
-        )
-
-        hover = btn.collidepoint(
-            mouse
+        result_box = pygame.Rect(
+            card.x + 95,
+            bottom_y,
+            410,
+            50
         )
 
         rounded_rect(
-
             self.screen,
+            result_box,
+            NAVY,
+            25
+        )
 
-            btn.move(
-                0,
-                -4 if hover else 0
-            ),
+        # Check visual
+        pygame.draw.circle(
+            self.screen,
+            GREEN,
+            (result_box.x + 28, result_box.centery),
+            13
+        )
 
-            ORANGE,
+        pygame.draw.line(
+            self.screen,
+            WHITE,
+            (result_box.x + 22, result_box.centery),
+            (result_box.x + 27, result_box.centery + 5),
+            2
+        )
 
-            18
-
+        pygame.draw.line(
+            self.screen,
+            WHITE,
+            (result_box.x + 27, result_box.centery + 5),
+            (result_box.x + 35, result_box.centery - 6),
+            2
         )
 
         text(
-
             self.screen,
-
-            "CONTINUAR  ▶",
-
-            self.fonts["option"],
-
+            "3 / 3  RESPUESTAS CORRECTAS",
+            pygame.font.SysFont("Arial", 15, bold=True),
             WHITE,
+            (result_box.x + 57, result_box.centery),
+            False
+        )
 
-            (
-                btn.centerx,
+        # Botón perfectamente contenido dentro del panel
+        btn = pygame.Rect(
+            result_box.right + 18,
+            bottom_y,
+            250,
+            50
+        )
 
-                btn.centery -
-                (
-                    4
-                    if hover
-                    else 0
-                )
+        mouse = self.logical(pygame.mouse.get_pos())
+        hover = btn.collidepoint(mouse)
 
-            ),
+        draw_arrow_button(
+            self.screen,
+            btn,
+            "CONTINUAR",
+            hover
+        )
 
-            True
+        # ----------------------------------------------------
+        # Siguiente estación
+        # ----------------------------------------------------
 
+        text(
+            self.screen,
+            "SIGUIENTE ESTACIÓN",
+            pygame.font.SysFont("Arial", 10, bold=True),
+            ORANGE,
+            (card.centerx - 112, 663)
+        )
+
+        text(
+            self.screen,
+            "COCINANDO LOS DATOS",
+            pygame.font.SysFont("Arial", 13, bold=True),
+            DARK,
+            (card.centerx + 8, 660)
         )
 
 
@@ -1978,15 +2143,11 @@ class TriviaApp:
         if self.show_intro:
 
             if pygame.Rect(
-
-                1095,
-                535,
-                250,
-                62
-
-            ).collidepoint(
-                pos
-            ):
+                970,
+                638,
+                275,
+                53
+            ).collidepoint(pos):
 
                 self.show_intro = False
 
@@ -2003,13 +2164,13 @@ class TriviaApp:
 
         if self.completed:
 
+            # Debe coincidir con el botón dibujado en draw_completed().
+            # La posición se mantiene dentro de la tarjeta central.
             if pygame.Rect(
-
-                600,
-                595,
-                340,
-                64
-
+                1013,
+                585,
+                250,
+                50
             ).collidepoint(
                 pos
             ):
