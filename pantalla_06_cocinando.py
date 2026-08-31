@@ -220,6 +220,8 @@ class DataChefScreen:
         self.scene = "intro"
         self.scene_time = 0
         self.panel_reveal = 0
+        self.dirty_reveal = 0
+        self.transform_progress = 0
 
         # -------------------------
         # IMÁGENES
@@ -568,6 +570,64 @@ class DataChefScreen:
         )
 
     # ============================================================
+    # PANEL SUCIO - ASÍ QUEDARÍA SIN LIMPIEZA
+    # ============================================================
+
+    def draw_dirty_panel(self):
+        self.draw_background()
+        self.draw_header()
+        text(self.screen, "ANTES DE COCINAR...", self.fonts["title"], DARK, (768, 145), True)
+        text(self.screen, "Así se vería el panel usando datos sucios, duplicados y sin validar.", self.fonts["body"], MUTED, (768, 205), True)
+
+        box = pygame.Rect(150, 245, 1236, 485)
+        rr(self.screen, box, WHITE, 30, 3, (240, 190, 190))
+        inner = pygame.Rect(box.x+22, box.y+22, box.width-44, box.height-44)
+        rr(self.screen, inner, (249,250,252), 20)
+        text(self.screen, "PANEL DE RESULTADOS", self.fonts["subtitle"], DARK, (inner.x+25, inner.y+20))
+        rr(self.screen, pygame.Rect(inner.right-300, inner.y+15, 270, 38), (255,232,232), 12, 2, (235,120,120))
+        text(self.screen, "⚠ DATOS SIN VALIDAR", self.fonts["small"], (190,70,70), (inner.right-165, inner.y+34), True)
+
+        cards=[("VENTAS", "$ 2.4M", ORANGE),("CLIENTES", "NULL", (210,70,70)),("VENTAS", "$ 2.4M", ORANGE),("CALIDAD", "145%", (210,70,70))]
+        for i,(title,value,color) in enumerate(cards):
+            card=pygame.Rect(inner.x+28+i*285, inner.y+82+(i%2)*8, 255, 100)
+            rr(self.screen, card, WHITE, 16, 2, (225,225,225))
+            text(self.screen,title,self.fonts["small"],MUTED,(card.x+16,card.y+14))
+            text(self.screen,value,self.fonts["subtitle"],color,(card.x+16,card.y+48))
+
+        graph=pygame.Rect(inner.x+28, inner.y+210, 705, 220)
+        rr(self.screen, graph, WHITE, 16, 2, (225,225,225))
+        text(self.screen,"VENTAS POR PERIODO (DATOS INCONSISTENTES)",self.fonts["small"],DARK,(graph.x+18,graph.y+15))
+        for gy in range(graph.y+55,graph.bottom-15,35):
+            pygame.draw.line(self.screen,(230,230,230),(graph.x+18,gy),(graph.right-18,gy),1)
+        vals=[35,145,55,175,70,155,40,190]
+        pts=[]
+        for i,v in enumerate(vals): pts.append((graph.x+35+i*82, graph.bottom-20-int(v*.85)))
+        pygame.draw.lines(self.screen,(210,70,70),False,pts,4)
+        for pt in pts: pygame.draw.circle(self.screen,(210,70,70),pt,6)
+
+        table=pygame.Rect(inner.x+765,inner.y+210,inner.width-793,220)
+        rr(self.screen,table,WHITE,16,2,(225,225,225))
+        rows=[("CLIENTE","VALOR"),("JUAN","$500"),("juan ","$500"),("JUAN","NULL"),("Maria","$-250"),("PEDRO","$1,000"),("Pedro ","$1,000")]
+        for i,(a,b) in enumerate(rows):
+            y=table.y+15+i*28
+            if i==0: rr(self.screen,pygame.Rect(table.x+8,y-5,table.width-16,25),(240,240,240),7)
+            col=DARK if i==0 else ((190,70,70) if ("NULL" in b or "-" in b or i in (2,3,6)) else MUTED)
+            text(self.screen,a,self.fonts["tiny"],col,(table.x+16,y))
+            text(self.screen,b,self.fonts["tiny"],col,(table.x+table.width-105,y))
+
+        problems=["✕ Datos duplicados","✕ Valores NULL","✕ Datos inconsistentes","✕ Métricas incorrectas"]
+        for i,label in enumerate(problems):
+            x=180+i*300
+            rr(self.screen,pygame.Rect(x,748,270,38),(255,238,238),15,2,(240,170,170))
+            text(self.screen,label,self.fonts["small"],(190,70,70),(x+135,767),True)
+
+        button=pygame.Rect(585,800,366,52)
+        hover=button.collidepoint(self.logical(pygame.mouse.get_pos()))
+        draw_button=button.move(0,-3 if hover else 0)
+        rr(self.screen,draw_button,ORANGE,18)
+        text(self.screen,"👨‍🍳  LIMPIAR Y COCINAR",self.fonts["button"],WHITE,draw_button.center,True)
+
+    # ============================================================
     # COCINANDO
     # ============================================================
 
@@ -707,7 +767,7 @@ class DataChefScreen:
 
         text(
             self.screen,
-            "TRANSFORMANDO DATOS...",
+            "LA RECETA ESTÁ FUNCIONANDO...",
             self.fonts["title"],
             DARK,
             (768, 285),
@@ -716,7 +776,7 @@ class DataChefScreen:
 
         text(
             self.screen,
-            "Los ingredientes se están convirtiendo en información útil.",
+            "Los datos sucios se están limpiando, organizando y convirtiendo en información confiable.",
             self.fonts["body"],
             MUTED,
             (768, 340),
@@ -981,7 +1041,7 @@ class DataChefScreen:
                 elif event.key == pygame.K_SPACE:
 
                     if self.scene == "intro":
-                        self.set_scene("cooking")
+                        self.set_scene("dirty_panel")
 
                     elif self.scene == "cooking":
                         for ingredient in self.ingredients:
@@ -1001,7 +1061,13 @@ class DataChefScreen:
                         button = pygame.Rect(600, 755, 336, 58)
 
                         if button.collidepoint(logical):
-                            print("[DATA CHEF] EMPEZAR -> COCINANDO")
+                            print("[DATA CHEF] EMPEZAR -> PANEL SUCIO")
+                            self.set_scene("dirty_panel")
+
+                    elif self.scene == "dirty_panel":
+                        button = pygame.Rect(585, 800, 366, 52)
+                        if button.collidepoint(logical):
+                            print("[DATA CHEF] DATOS SUCIOS -> COCINANDO")
                             self.set_scene("cooking")
 
     # ============================================================
@@ -1012,7 +1078,10 @@ class DataChefScreen:
         self.t += dt
         self.scene_time += dt
 
-        if self.scene == "cooking":
+        if self.scene == "dirty_panel":
+            self.dirty_reveal = min(1, self.dirty_reveal + dt * 1.5)
+
+        elif self.scene == "cooking":
 
             for ingredient in self.ingredients:
                 ingredient.update(dt)
@@ -1046,6 +1115,9 @@ class DataChefScreen:
     def draw(self):
         if self.scene == "intro":
             self.draw_intro()
+
+        elif self.scene == "dirty_panel":
+            self.draw_dirty_panel()
 
         elif self.scene == "cooking":
             self.draw_cooking()
