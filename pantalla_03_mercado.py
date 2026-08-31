@@ -808,6 +808,17 @@ class Market:
             True
         )
 
+        button = pygame.Rect(625, 575, 285, 52)
+        rr(self.screen, button, ORANGE, 16)
+        txt(
+            self.screen,
+            "CONTINUAR  →",
+            self.font["small"],
+            WHITE,
+            button.center,
+            True
+        )
+
     def draw_wrong(self):
         self.draw_game()
 
@@ -935,8 +946,27 @@ class Market:
                             print("[DATA CHEF] Reintento")
 
                     elif self.mode == "success":
-                        # Aquí luego conectamos pantalla_04.
-                        pass
+                        button = pygame.Rect(625, 575, 285, 52)
+
+                        if button.collidepoint(pos):
+                            pantalla_04 = os.path.join(
+                                os.path.dirname(os.path.abspath(__file__)),
+                                "pantalla_04_limpieza.py"
+                            )
+
+                            print("[DATA CHEF] CONTINUAR -> PANTALLA 04 · LIMPIEZA Y ORDEN")
+
+                            if os.path.exists(pantalla_04):
+                                import subprocess
+
+                                subprocess.Popen(
+                                    [sys.executable, pantalla_04],
+                                    cwd=os.path.dirname(pantalla_04)
+                                )
+
+                                self.running = False
+                            else:
+                                print("[DATA CHEF] ERROR: No existe:", pantalla_04)
 
             if self.mode == "game":
                 self.update_player(dt)
