@@ -9,30 +9,32 @@ pygame.init()
 # ============================================================
 # DATA CHEF | MARESA
 # PANTALLA 06 - EL CHEF PREPARA EL PANEL
-# VERSION PRO V2
+#
+# Coloca estas imágenes PNG dentro de assets/
+#
+#   chef_cocinando.png     -> Chef cocinando
+#   chef_orgulloso.png     -> Chef mostrando el resultado
+#   olla.png               -> Olla (opcional, el juego dibuja una si falta)
+#   panel_final.png        -> Imagen/captura del panel terminado
+#   logo_maresa.png        -> Logo (opcional)
+#
+# Ejecutar:
+#   py -3.13 pantalla_06_cocinando.py
 # ============================================================
 
 WIDTH, HEIGHT = 1536, 864
 FPS = 60
 
-# -------------------------
-# PALETA PROFESIONAL
-# -------------------------
-BG = (248, 245, 238)
+BG = (250, 245, 236)
 WHITE = (255, 255, 255)
 ORANGE = (247, 116, 18)
 DARK_ORANGE = (210, 85, 8)
-DARK = (31, 45, 55)
-DARK_2 = (43, 60, 70)
-MUTED = (103, 115, 123)
+BLUE = (26, 104, 210)
+DARK = (39, 49, 59)
+MUTED = (93, 103, 112)
+GREEN = (38, 160, 92)
 LIGHT_ORANGE = (255, 239, 221)
-PALE_ORANGE = (255, 247, 237)
-BLUE = (52, 130, 205)
-LIGHT_BLUE = (233, 243, 251)
-GREEN = (43, 166, 99)
-LINE = (226, 218, 207)
-SOFT = (242, 238, 230)
-GRAY = (221, 218, 211)
+LIGHT_BLUE = (235, 244, 255)
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 ASSETS = os.path.join(BASE, "assets")
@@ -94,10 +96,6 @@ def text(surface, value, font, color, pos, center=False):
     return rect
 
 
-def line(surface, color, start, end, width=2):
-    pygame.draw.line(surface, color, start, end, width)
-
-
 class SteamParticle:
     def __init__(self, x, y):
         self.reset(x, y, random.uniform(0, 1))
@@ -133,7 +131,6 @@ class SteamParticle:
         radius = max(2, int(self.size * (1 - self.age / self.life * 0.35)))
 
         layer = pygame.Surface((radius * 4, radius * 4), pygame.SRCALPHA)
-
         pygame.draw.circle(
             layer,
             (255, 255, 255, alpha),
@@ -141,10 +138,7 @@ class SteamParticle:
             radius
         )
 
-        surface.blit(
-            layer,
-            (int(self.x - radius * 2), int(self.y - radius * 2))
-        )
+        surface.blit(layer, (int(self.x - radius * 2), int(self.y - radius * 2)))
 
 
 class FlyingIngredient:
@@ -180,7 +174,6 @@ class FlyingIngredient:
 
         p0 = self.start
         p2 = self.target
-
         control = pygame.Vector2(
             (p0.x + p2.x) / 2,
             min(p0.y, p2.y) - 120
@@ -196,44 +189,22 @@ class FlyingIngredient:
 
         rr(
             surface,
-            pygame.Rect(
-                int(pos.x - 52),
-                int(pos.y - 40 + bob),
-                104,
-                80
-            ),
+            pygame.Rect(int(pos.x - 52), int(pos.y - 40 + bob), 104, 80),
             WHITE,
             18,
             2,
             LIGHT_ORANGE
         )
 
-        text(
-            surface,
-            self.icon,
-            font,
-            DARK,
-            (int(pos.x), int(pos.y - 4 + bob)),
-            True
-        )
+        text(surface, self.icon, font, DARK, (int(pos.x), int(pos.y - 4 + bob)), True)
 
 
 class DataChefScreen:
     def __init__(self):
-        self.window = pygame.display.set_mode(
-            (0, 0),
-            pygame.RESIZABLE
-        )
+        self.window = pygame.display.set_mode((0, 0), pygame.RESIZABLE)
+        pygame.display.set_caption("DATA CHEF | MARESA - Preparando el Panel")
 
-        pygame.display.set_caption(
-            "DATA CHEF | MARESA - Preparando el Panel"
-        )
-
-        self.screen = pygame.Surface(
-            (WIDTH, HEIGHT),
-            pygame.SRCALPHA
-        )
-
+        self.screen = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
         self.clock = pygame.time.Clock()
 
         self.running = True
@@ -244,7 +215,7 @@ class DataChefScreen:
         self.oy = 0
 
         # -------------------------
-        # ESTADOS
+        # ESTADOS DE LA ANIMACIÓN
         # -------------------------
         self.scene = "intro"
         self.scene_time = 0
@@ -253,76 +224,47 @@ class DataChefScreen:
         self.transform_progress = 0
 
         # -------------------------
-        # IMAGENES
+        # IMÁGENES
         # -------------------------
-        self.logo = load_img("logo_maresa.png", (230, 80))
-        self.chef_cooking = load_img(
-            "chef_cocinando.png",
-            (470, 570)
-        )
-        self.chef_proud = load_img(
-            "chef_orgulloso.png",
-            (390, 510)
-        )
-        self.pot = load_img(
-            "olla.png",
-            (330, 250)
-        )
-        self.panel = load_img(
-            "panel_final.png",
-            (760, 470)
-        )
+        self.logo = load_img("logo_maresa.png", (260, 90))
+        self.chef_cooking = load_img("chef_cocinando.png", (500, 610))
+        self.chef_proud = load_img("chef_orgulloso.png", (430, 560))
+        self.pot = load_img("olla.png", (340, 260))
+        self.panel = load_img("panel_final.png", (760, 470))
 
         # -------------------------
         # FUENTES
         # -------------------------
         self.fonts = {
-            "micro": pygame.font.SysFont("Arial", 13),
             "tiny": pygame.font.SysFont("Arial", 16),
             "small": pygame.font.SysFont("Arial", 19),
-            "body": pygame.font.SysFont("Arial", 22),
-            "body_bold": pygame.font.SysFont("Arial", 22, bold=True),
-            "subtitle": pygame.font.SysFont("Arial", 29, bold=True),
-            "title": pygame.font.SysFont("Arial", 54, bold=True),
+            "body": pygame.font.SysFont("Arial", 23),
+            "bold": pygame.font.SysFont("Arial", 23, bold=True),
+            "subtitle": pygame.font.SysFont("Arial", 30, bold=True),
+            "title": pygame.font.SysFont("Arial", 58, bold=True),
             "big": pygame.font.SysFont("Arial", 72, bold=True),
-            "button": pygame.font.SysFont("Arial", 24, bold=True),
-            "number": pygame.font.SysFont("Arial", 20, bold=True),
-            "icon": pygame.font.SysFont("Segoe UI Symbol", 38),
+            "button": pygame.font.SysFont("Arial", 25, bold=True),
+            "icon": pygame.font.SysFont("Segoe UI Emoji", 42),
+            "emoji": pygame.font.SysFont("Segoe UI Emoji", 30),
         }
 
-        # -------------------------
-        # ANIMACION
-        # -------------------------
-        self.steam_origin = (1110, 535)
-
+        self.steam_origin = (1060, 500)
         self.steam = [
-            SteamParticle(
-                self.steam_origin[0],
-                self.steam_origin[1]
-            )
+            SteamParticle(self.steam_origin[0], self.steam_origin[1])
             for _ in range(22)
         ]
 
         self.ingredients = [
-            FlyingIngredient(
-                250, 660, (1110, 560),
-                "DB", "Base de datos", 0.2
-            ),
-            FlyingIngredient(
-                470, 710, (1110, 560),
-                "✦", "Datos limpios", 0.8
-            ),
-            FlyingIngredient(
-                720, 700, (1110, 560),
-                "✓", "Datos validados", 1.4
-            ),
-            FlyingIngredient(
-                900, 720, (1110, 560),
-                "▥", "Información", 2.0
-            ),
+            FlyingIngredient(250, 660, (1060, 545), "🗄", "Base de datos", 0.2),
+            FlyingIngredient(470, 710, (1060, 545), "✦", "Datos limpios", 0.8),
+            FlyingIngredient(720, 700, (1060, 545), "✓", "Datos validados", 1.4),
+            FlyingIngredient(900, 720, (1060, 545), "▥", "Información", 2.0),
         ]
 
-        print("[DATA CHEF] Pantalla 06 PRO V2 iniciada.")
+        self.finished_ingredients = 0
+        self.auto_started = False
+
+        print("[DATA CHEF] Pantalla 06 iniciada.")
 
     # ============================================================
     # UTILIDADES
@@ -339,62 +281,6 @@ class DataChefScreen:
         self.scene_time = 0
         print("[DATA CHEF] ESCENA ->", name)
 
-    def draw_shadow(self, rect, radius=24, offset=(0, 7), alpha=32):
-        shadow = pygame.Surface(
-            (rect.width + 30, rect.height + 30),
-            pygame.SRCALPHA
-        )
-
-        rr(
-            shadow,
-            pygame.Rect(
-                15,
-                15,
-                rect.width,
-                rect.height
-            ),
-            (20, 31, 39, alpha),
-            radius
-        )
-
-        self.screen.blit(
-            shadow,
-            (
-                rect.x - 15 + offset[0],
-                rect.y - 15 + offset[1]
-            )
-        )
-
-    def draw_badge(self, x, y, number, label, active=False):
-        color = ORANGE if active else (181, 189, 193)
-        fill = LIGHT_ORANGE if active else WHITE
-
-        rr(
-            self.screen,
-            pygame.Rect(x, y, 42, 42),
-            fill,
-            21,
-            2,
-            color
-        )
-
-        text(
-            self.screen,
-            number,
-            self.fonts["number"],
-            color if active else MUTED,
-            (x + 21, y + 21),
-            True
-        )
-
-        text(
-            self.screen,
-            label,
-            self.fonts["tiny"],
-            DARK if active else MUTED,
-            (x + 54, y + 5)
-        )
-
     # ============================================================
     # FONDO
     # ============================================================
@@ -402,176 +288,83 @@ class DataChefScreen:
     def draw_background(self):
         self.screen.fill(BG)
 
-        # Manchas decorativas suaves
         pygame.draw.ellipse(
             self.screen,
-            (255, 232, 207),
-            (1080, -150, 620, 390)
+            (255, 229, 199),
+            (1080, -150, 600, 350)
         )
 
         pygame.draw.ellipse(
             self.screen,
-            (255, 237, 218),
-            (-190, 690, 670, 300)
+            (255, 235, 215),
+            (-180, 680, 650, 280)
         )
 
-        # Zona de cocina
-        pygame.draw.rect(
-            self.screen,
-            (244, 240, 232),
-            (0, 145, WIDTH, 650)
-        )
+        # Azulejos decorativos
+        for x in range(40, WIDTH, 120):
+            for y in range(160, 500, 110):
+                alpha = 22
+                tile = pygame.Surface((95, 85), pygame.SRCALPHA)
+                rr(tile, pygame.Rect(0, 0, 95, 85), (255, 255, 255, alpha), 15)
+                self.screen.blit(tile, (x, y))
 
-        # Cuadrícula muy sutil
-        for x in range(0, WIDTH, 100):
-            line(
-                self.screen,
-                (239, 235, 227),
-                (x, 145),
-                (x, 795),
-                1
-            )
-
-        for y in range(145, 796, 90):
-            line(
-                self.screen,
-                (239, 235, 227),
-                (0, y),
-                (WIDTH, y),
-                1
-            )
-
-        # Partículas pequeñas
+        # Partículas
         for i in range(18):
             x = int((i * 131 + self.t * 13) % WIDTH)
-            y = int(160 + (i * 71) % 610)
-
-            pygame.draw.circle(
-                self.screen,
-                ORANGE,
-                (x, y),
-                2
-            )
-
-    # ============================================================
-    # HEADER NUEVO
-    # ============================================================
+            y = int(130 + (i * 71) % 650)
+            pygame.draw.circle(self.screen, (247, 116, 18), (x, y), 2)
 
     def draw_header(self):
-        # Línea superior
-        pygame.draw.rect(
-            self.screen,
-            ORANGE,
-            (0, 0, WIDTH, 7)
-        )
-
-        # Barra principal
-        pygame.draw.rect(
-            self.screen,
-            WHITE,
-            (0, 7, WIDTH, 126)
-        )
-
-        # Separador
-        line(
-            self.screen,
-            LINE,
-            (0, 133),
-            (WIDTH, 133),
-            2
-        )
-
-        # Logo
         if self.logo:
-            logo_rect = self.logo.get_rect(
-                midleft=(42, 69)
-            )
-            self.screen.blit(self.logo, logo_rect)
+            self.screen.blit(self.logo, (35, 25))
         else:
             text(
                 self.screen,
                 "maresa",
-                self.fonts["subtitle"],
+                self.fonts["title"],
                 ORANGE,
-                (42, 52)
+                (35, 25)
             )
 
-        # Separador logo
-        line(
-            self.screen,
-            LINE,
-            (230, 35),
-            (230, 102),
-            2
-        )
-
-        # Marca principal
         text(
             self.screen,
-            "DATA",
+            "DATA CHEF",
             self.fonts["subtitle"],
             DARK,
-            (270, 42)
+            (WIDTH // 2, 52),
+            True
         )
 
-        text(
-            self.screen,
-            "CHEF",
-            self.fonts["subtitle"],
-            ORANGE,
-            (356, 42)
-        )
-
-        text(
-            self.screen,
-            "ESTACIÓN 04  /  COCINANDO LOS DATOS",
-            self.fonts["small"],
-            MUTED,
-            (270, 77)
-        )
-
-        # Estado de estación
         rr(
             self.screen,
-            pygame.Rect(1110, 34, 350, 65),
-            DARK,
-            32
-        )
-
-        pygame.draw.circle(
-            self.screen,
-            ORANGE,
-            (1142, 66),
-            7
+            pygame.Rect(575, 78, 386, 40),
+            LIGHT_ORANGE,
+            20,
+            2,
+            (249, 210, 171)
         )
 
         text(
             self.screen,
-            "PASO 04",
-            self.fonts["tiny"],
-            (205, 216, 221),
-            (1160, 45)
-        )
-
-        text(
-            self.screen,
-            "PREPARANDO EL PANEL",
-            self.fonts["body_bold"],
-            WHITE,
-            (1160, 66)
+            "Transformando datos en información",
+            self.fonts["small"],
+            DARK_ORANGE,
+            (768, 98),
+            True
         )
 
     # ============================================================
     # OLLA
     # ============================================================
 
-    def draw_pot(self, x=1110, y=585):
+    def draw_pot(self, x=1060, y=585):
+        # Si el usuario sube olla.png
         if self.pot:
             rect = self.pot.get_rect(center=(x, y))
             self.screen.blit(self.pot, rect)
             return
 
-        # Olla fallback
+        # Olla creada con pygame si no existe la imagen
         pygame.draw.ellipse(
             self.screen,
             (78, 86, 95),
@@ -622,648 +415,159 @@ class DataChefScreen:
     # CHEF
     # ============================================================
 
-    def draw_chef_cooking(self, box):
-        """Chef contenido dentro de su tarjeta; nunca invade títulos ni otros paneles."""
-        # Sombra de piso dentro del panel
-        floor = pygame.Rect(box.x + 38, box.bottom - 58, 320, 24)
-        pygame.draw.ellipse(self.screen, (216, 209, 199), floor)
+    def draw_chef_cooking(self):
+        x = 400
+        y = 705 + math.sin(self.t * 2.3) * 5
 
         if self.chef_cooking:
-            iw, ih = self.chef_cooking.get_size()
-
-            # El personaje ocupa una columna propia y queda limitado al panel.
-            max_w = 300
-            max_h = 390
-            scale = min(max_w / iw, max_h / ih)
-
-            scaled = pygame.transform.smoothscale(
-                self.chef_cooking,
-                (max(1, int(iw * scale)), max(1, int(ih * scale)))
-            )
-
-            rect = scaled.get_rect(
-                midbottom=(box.x + 205, box.bottom - 35)
-            )
-
-            self.screen.blit(scaled, rect)
-
+            rect = self.chef_cooking.get_rect(midbottom=(x, int(y)))
+            self.screen.blit(self.chef_cooking, rect)
         else:
             rr(
                 self.screen,
-                pygame.Rect(box.x + 70, box.y + 115, 260, 330),
+                pygame.Rect(170, 320, 430, 380),
                 WHITE,
                 28,
-                2,
-                ORANGE
-            )
-            text(
-                self.screen,
-                "CHEF",
-                self.fonts["title"],
-                ORANGE,
-                (box.x + 200, box.y + 270),
-                True
-            )
-
-    # ============================================================
-    # INTRO PROFESIONAL
-    # ============================================================
-
-    def draw_chef_intro(self):
-        """
-        Chef de portada.
-        Importante: queda deliberadamente por debajo del titular para
-        que NUNCA se dibuje encima de las frases de introducción.
-        """
-        # Zona visual reservada exclusivamente al personaje.
-        chef_area = pygame.Rect(90, 493, 275, 262)
-
-        # Sombra de suelo
-        pygame.draw.ellipse(
-            self.screen,
-            (214, 208, 198),
-            (chef_area.x + 5, chef_area.bottom - 22, 255, 26)
-        )
-
-        if self.chef_cooking:
-            iw, ih = self.chef_cooking.get_size()
-
-            # Escala contenida. El límite vertical es el importante:
-            # el personaje jamás puede subir hasta el titular.
-            scale = min(
-                275 / iw,
-                262 / ih
-            )
-
-            scaled = pygame.transform.smoothscale(
-                self.chef_cooking,
-                (
-                    max(1, int(iw * scale)),
-                    max(1, int(ih * scale))
-                )
-            )
-
-            # El personaje queda centrado dentro de su zona inferior.
-            rect = scaled.get_rect(
-                midbottom=(
-                    chef_area.centerx + 5,
-                    chef_area.bottom
-                )
-            )
-
-            self.screen.blit(scaled, rect)
-
-        else:
-            rr(
-                self.screen,
-                pygame.Rect(125, 465, 220, 260),
-                WHITE,
-                28,
-                2,
+                3,
                 ORANGE
             )
 
             text(
                 self.screen,
-                "CHEF",
-                self.fonts["title"],
+                "SUBE:",
+                self.fonts["bold"],
                 ORANGE,
-                (235, 590),
+                (385, 470),
                 True
             )
+
+            text(
+                self.screen,
+                "assets/chef_cocinando.png",
+                self.fonts["small"],
+                MUTED,
+                (385, 510),
+                True
+            )
+
+    def draw_chef_proud(self):
+        x = 1250
+        y = 735 + math.sin(self.t * 2) * 4
+
+        if self.chef_proud:
+            rect = self.chef_proud.get_rect(midbottom=(x, int(y)))
+            self.screen.blit(self.chef_proud, rect)
+        else:
+            rr(
+                self.screen,
+                pygame.Rect(1080, 350, 360, 340),
+                WHITE,
+                28,
+                3,
+                ORANGE
+            )
+
+            text(
+                self.screen,
+                "SUBE:",
+                self.fonts["bold"],
+                ORANGE,
+                (1260, 480),
+                True
+            )
+
+            text(
+                self.screen,
+                "assets/chef_orgulloso.png",
+                self.fonts["small"],
+                MUTED,
+                (1260, 520),
+                True
+            )
+
+    # ============================================================
+    # INTRO
+    # ============================================================
 
     def draw_intro(self):
         self.draw_background()
         self.draw_header()
 
-        # ========================================================
-        # COMPOSICIÓN PRINCIPAL
-        # ========================================================
-        left = pygame.Rect(55, 170, 650, 605)
-        right = pygame.Rect(735, 170, 745, 605)
-
-        # Separador limpio
-        line(
-            self.screen,
-            (224, 217, 207),
-            (720, 185),
-            (720, 770),
-            2
-        )
-
-        # ========================================================
-        # PANEL IZQUIERDO — PRESENTACIÓN
-        # ========================================================
-        self.draw_shadow(left, 30, (0, 7), 18)
+        pulse = 1 + math.sin(self.t * 3) * 0.03
 
         rr(
             self.screen,
-            left,
-            (252, 248, 241),
-            30,
-            2,
-            (235, 226, 215)
-        )
-
-        # Fondo decorativo muy sutil
-        pygame.draw.circle(
-            self.screen,
-            (248, 235, 216),
-            (205, 430),
-            205
-        )
-
-        pygame.draw.circle(
-            self.screen,
-            (252, 242, 229),
-            (205, 430),
-            165
-        )
-
-        # ========================================================
-        # ETIQUETA
-        # ========================================================
-        rr(
-            self.screen,
-            pygame.Rect(88, 198, 225, 34),
-            LIGHT_ORANGE,
-            17
+            pygame.Rect(300, 235, 936, 390),
+            WHITE,
+            36,
+            3,
+            (249, 210, 171)
         )
 
         text(
             self.screen,
-            "04  /  ESTACIÓN DE COCINA",
-            self.fonts["tiny"],
-            DARK_ORANGE,
-            (200, 215),
+            "¡LA COCINA ESTÁ LISTA!",
+            self.fonts["title"],
+            DARK,
+            (768, 330),
             True
         )
 
-        # ========================================================
-        # TITULAR
-        # El personaje NO entra en esta zona.
-        # ========================================================
         text(
             self.screen,
-            "¡LA COCINA",
-            self.fonts["title"],
-            DARK,
-            (88, 255)
-        )
-
-        text(
-            self.screen,
-            "ESTÁ LISTA!",
-            self.fonts["title"],
-            ORANGE,
-            (88, 313)
-        )
-
-        # Subtítulo
-        text(
-            self.screen,
-            "Los datos ya están preparados.",
-            self.fonts["small"],
+            "Ahora vamos a transformar todos los datos preparados",
+            self.fonts["body"],
             MUTED,
-            (90, 382)
-        )
-
-        text(
-            self.screen,
-            "Ahora los convertiremos en información",
-            self.fonts["small"],
-            MUTED,
-            (90, 408)
-        )
-
-        text(
-            self.screen,
-            "útil para tomar mejores decisiones.",
-            self.fonts["small"],
-            MUTED,
-            (90, 434)
-        )
-
-        # ========================================================
-        # ETIQUETA DE RECETA
-        # Se coloca en una zona propia para que NO se mezcle con
-        # la última línea descriptiva ni con el chef.
-        # ========================================================
-        recipe_tag = pygame.Rect(90, 458, 205, 28)
-
-        rr(
-            self.screen,
-            recipe_tag,
-            LIGHT_ORANGE,
-            14
-        )
-
-        pygame.draw.rect(
-            self.screen,
-            ORANGE,
-            (recipe_tag.x, recipe_tag.y, 4, recipe_tag.height),
-            border_radius=2
-        )
-
-        text(
-            self.screen,
-            "LA RECETA DE DATOS",
-            self.fonts["micro"],
-            DARK_ORANGE,
-            recipe_tag.center,
+            (768, 415),
             True
         )
 
-        # ========================================================
-        # CHEF
-        # El área del personaje comienza DESPUÉS de la etiqueta.
-        # Así ningún elemento puede tapar el texto.
-        # ========================================================
-        self.draw_chef_intro()
-
-        # ========================================================
-        # BURBUJA DEL CHEF
-        # Separada del titular y del cuerpo del personaje.
-        # ========================================================
-        bubble = pygame.Rect(365, 535, 305, 118)
-
-        self.draw_shadow(
-            bubble,
-            22,
-            (0, 5),
-            20
-        )
-
-        rr(
-            self.screen,
-            bubble,
-            WHITE,
-            22,
-            2,
-            (228, 220, 210)
-        )
-
-        # Pico apuntando al personaje
-        pygame.draw.polygon(
-            self.screen,
-            WHITE,
-            [
-                (365, 580),
-                (338, 597),
-                (365, 610)
-            ]
-        )
-
-        pygame.draw.rect(
-            self.screen,
-            ORANGE,
-            (390, 557, 45, 5),
-            border_radius=3
-        )
-
         text(
             self.screen,
-            "“Todo está preparado.”",
-            self.fonts["body_bold"],
-            DARK,
-            (390, 575)
-        )
-
-        text(
-            self.screen,
-            "Ahora toca cocinar los datos.",
-            self.fonts["small"],
-            ORANGE,
-            (390, 605)
-        )
-
-        text(
-            self.screen,
-            "DATA CHEF  •  RECETA FINAL",
-            self.fonts["micro"],
+            "en la receta final para nuestro panel.",
+            self.fonts["body"],
             MUTED,
-            (390, 630)
+            (768, 452),
+            True
         )
 
-        # ========================================================
-        # PANEL DERECHO — RECETA
-        # ========================================================
-        self.draw_shadow(
-            right,
-            32,
-            (0, 8),
-            28
-        )
+        size = int(105 * pulse)
+        pygame.draw.circle(self.screen, LIGHT_ORANGE, (768, 535), size)
+        pygame.draw.circle(self.screen, ORANGE, (768, 535), size, 5)
 
-        rr(
+        text(
             self.screen,
-            right,
-            WHITE,
-            32,
-            2,
-            (226, 218, 207)
-        )
-
-        header = pygame.Rect(
-            right.x,
-            right.y,
-            right.width,
-            112
-        )
-
-        rr(
-            self.screen,
-            header,
+            "👨‍🍳",
+            self.fonts["big"],
             DARK,
-            32
-        )
-
-        pygame.draw.rect(
-            self.screen,
-            DARK,
-            (
-                header.x,
-                header.bottom - 38,
-                header.width,
-                38
-            )
+            (768, 530),
+            True
         )
 
         text(
             self.screen,
-            "RECETA FINAL",
-            self.fonts["tiny"],
-            (190, 202, 208),
-            (770, 198)
-        )
-
-        text(
-            self.screen,
-            "Transformando datos en información",
-            self.fonts["subtitle"],
-            WHITE,
-            (770, 224)
-        )
-
-        # Estado
-        rr(
-            self.screen,
-            pygame.Rect(1288, 196, 145, 42),
-            (55, 76, 87),
-            21
-        )
-
-        pygame.draw.circle(
-            self.screen,
-            GREEN,
-            (1312, 217),
-            6
-        )
-
-        text(
-            self.screen,
-            "LISTO",
-            self.fonts["tiny"],
-            WHITE,
-            (1327, 207)
-        )
-
-        # ========================================================
-        # ETAPAS
-        # ========================================================
-        stages = [
-            ("01", "PREPARAR", "Datos limpios", GREEN),
-            ("02", "VALIDAR", "Reglas aplicadas", BLUE),
-            ("03", "TRANSFORMAR", "Información útil", ORANGE),
-            ("04", "COCINAR", "Panel final", DARK_ORANGE),
-        ]
-
-        start_x = 770
-        card_y = 320
-        card_w = 157
-        gap = 13
-
-        for i, (num, title, desc, color) in enumerate(stages):
-            x = start_x + i * (card_w + gap)
-
-            card = pygame.Rect(
-                x,
-                card_y,
-                card_w,
-                155
-            )
-
-            rr(
-                self.screen,
-                card,
-                PALE_ORANGE if i == 3 else (249, 249, 247),
-                20,
-                2,
-                (225, 219, 211)
-            )
-
-            pygame.draw.rect(
-                self.screen,
-                color,
-                (x, card_y, 6, 155),
-                border_radius=3
-            )
-
-            pygame.draw.circle(
-                self.screen,
-                color,
-                (x + 35, card_y + 35),
-                19
-            )
-
-            text(
-                self.screen,
-                num,
-                self.fonts["tiny"],
-                WHITE,
-                (x + 35, card_y + 35),
-                True
-            )
-
-            text(
-                self.screen,
-                title,
-                self.fonts["tiny"],
-                DARK,
-                (x + 18, card_y + 72)
-            )
-
-            text(
-                self.screen,
-                desc,
-                self.fonts["micro"],
-                MUTED,
-                (x + 18, card_y + 100)
-            )
-
-            pygame.draw.circle(
-                self.screen,
-                color,
-                (x + card_w - 27, card_y + 126),
-                10
-            )
-
-            text(
-                self.screen,
-                "✓",
-                self.fonts["micro"],
-                WHITE,
-                (x + card_w - 27, card_y + 126),
-                True
-            )
-
-        line(
-            self.screen,
-            (224, 218, 209),
-            (805, 530),
-            (1407, 530),
-            4
-        )
-
-        # ========================================================
-        # MENSAJE
-        # ========================================================
-        rr(
-            self.screen,
-            pygame.Rect(770, 555, 675, 72),
-            (247, 243, 236),
-            18
-        )
-
-        pygame.draw.circle(
-            self.screen,
+            "El Chef está listo para cocinar",
+            self.fonts["bold"],
             ORANGE,
-            (798, 591),
-            8
+            (768, 680),
+            True
         )
 
+        button = pygame.Rect(600, 755, 336, 58)
+        pos = self.logical(pygame.mouse.get_pos())
+        hover = button.collidepoint(pos)
+
+        draw_button = button.move(0, -3 if hover else 0)
+
+        rr(self.screen, draw_button, ORANGE, 18)
         text(
             self.screen,
-            "LA RECETA ESTÁ LISTA PARA EMPEZAR",
-            self.fonts["body_bold"],
-            DARK,
-            (822, 570)
-        )
-
-        text(
-            self.screen,
-            "Presiona el botón para iniciar la preparación del panel.",
-            self.fonts["small"],
-            MUTED,
-            (822, 600)
-        )
-
-        # ========================================================
-        # CTA
-        # ========================================================
-        button = pygame.Rect(
-            995,
-            650,
-            330,
-            54
-        )
-
-        logical = self.logical(
-            pygame.mouse.get_pos()
-        )
-
-        hover = button.collidepoint(logical)
-
-        draw_button = button.move(
-            0,
-            -3 if hover else 0
-        )
-
-        rr(
-            self.screen,
-            draw_button.move(0, 5),
-            (26, 38, 46),
-            17
-        )
-
-        rr(
-            self.screen,
-            draw_button,
-            ORANGE if hover else DARK_ORANGE,
-            17
-        )
-
-        text(
-            self.screen,
-            "EMPEZAR A COCINAR",
+            "🔥  EMPEZAR A COCINAR",
             self.fonts["button"],
             WHITE,
-            (draw_button.centerx - 13, draw_button.centery),
+            draw_button.center,
             True
         )
-
-        pygame.draw.circle(
-            self.screen,
-            WHITE,
-            (draw_button.right - 32, draw_button.centery),
-            13
-        )
-
-        pygame.draw.polygon(
-            self.screen,
-            ORANGE,
-            [
-                (draw_button.right - 28, draw_button.centery - 6),
-                (draw_button.right - 28, draw_button.centery + 6),
-                (draw_button.right - 21, draw_button.centery)
-            ]
-        )
-
-        # ========================================================
-        # FOOTER
-        # ========================================================
-        pygame.draw.rect(
-            self.screen,
-            DARK,
-            (0, 800, WIDTH, 64)
-        )
-
-        text(
-            self.screen,
-            "DATA CHEF",
-            self.fonts["small"],
-            WHITE,
-            (55, 822)
-        )
-
-        text(
-            self.screen,
-            "PREPARAR  →  LIMPIAR  →  RETAR  →  COCINAR",
-            self.fonts["tiny"],
-            (185, 199, 205),
-            (220, 824)
-        )
-
-        steps_x = [1080, 1160, 1240, 1320]
-
-        for i, sx in enumerate(steps_x):
-            color = ORANGE if i == 3 else (91, 106, 115)
-
-            pygame.draw.circle(
-                self.screen,
-                color,
-                (sx, 832),
-                7
-            )
-
-            if i < 3:
-                line(
-                    self.screen,
-                    (91, 106, 115),
-                    (sx + 9, 832),
-                    (sx + 71, 832),
-                    2
-                )
 
     # ============================================================
     # PANEL SUCIO - ASÍ QUEDARÍA SIN LIMPIEZA
@@ -1331,595 +635,136 @@ class DataChefScreen:
         self.draw_background()
         self.draw_header()
 
-        # ========================================================
-        # TÍTULO — ZONA EXCLUSIVA, SIN PERSONAJES ENCIMA
-        # ========================================================
-        title_y = 171
-
-        # Etiqueta de estación
-        rr(
-            self.screen,
-            pygame.Rect(78, 158, 190, 30),
-            LIGHT_ORANGE,
-            15
-        )
+        # Título
         text(
             self.screen,
-            "04  /  ESTACIÓN DE COCINA",
-            self.fonts["micro"],
-            DARK_ORANGE,
-            (173, 173),
+            "PREPARANDO TU PANEL...",
+            self.fonts["title"],
+            DARK,
+            (768, 165),
             True
         )
 
-        # --------------------------------------------------------
-        # TÍTULO CORREGIDO
-        # Se calcula el ancho REAL de ambas palabras para que
-        # "PREPARANDO TU PANEL..." quede como un solo titular,
-        # perfectamente centrado y sin superposición.
-        # --------------------------------------------------------
-        title_a = "PREPARANDO"
-        title_b = "TU PANEL..."
-        title_font = self.fonts["title"]
-        title_gap = 18
-
-        width_a = title_font.size(title_a)[0]
-        width_b = title_font.size(title_b)[0]
-        total_width = width_a + title_gap + width_b
-
-        title_x = (WIDTH - total_width) // 2
-
+        subtitle = "Cada ingrediente representa datos preparados y confiables."
         text(
             self.screen,
-            title_a,
-            title_font,
-            DARK,
-            (title_x, title_y)
-        )
-
-        text(
-            self.screen,
-            title_b,
-            title_font,
-            ORANGE,
-            (title_x + width_a + title_gap, title_y)
-        )
-
-        text(
-            self.screen,
-            "Cada ingrediente representa datos preparados y confiables.",
+            subtitle,
             self.fonts["body"],
             MUTED,
-            (768, 226),
+            (768, 215),
             True
         )
 
-        # Pequeño detalle decorativo de cocina
-        pygame.draw.line(
-            self.screen, ORANGE, (708, 253), (828, 253), 3
-        )
-        pygame.draw.circle(self.screen, ORANGE, (695, 253), 4)
-        pygame.draw.circle(self.screen, ORANGE, (841, 253), 4)
-
-        # ========================================================
-        # TARJETAS PRINCIPALES
-        # ========================================================
-        chef_box = pygame.Rect(70, 270, 600, 485)
-        recipe_box = pygame.Rect(695, 270, 770, 485)
-
-        for box in (chef_box, recipe_box):
-            self.draw_shadow(box, 28, (0, 8), 24)
-            rr(
-                self.screen,
-                box,
-                WHITE,
-                28,
-                2,
-                (226, 218, 207)
-            )
-
-        # ========================================================
-        # TARJETA DEL CHEF
-        # ========================================================
+        # Zona del chef
         rr(
             self.screen,
-            pygame.Rect(70, 270, 600, 68),
-            DARK,
-            28
-        )
-        pygame.draw.rect(
-            self.screen,
-            DARK,
-            (70, 310, 600, 28)
-        )
-
-        text(
-            self.screen,
-            "CHEF DE DATOS",
-            self.fonts["small"],
+            pygame.Rect(100, 255, 600, 480),
             WHITE,
-            (98, 291)
-        )
-        text(
-            self.screen,
-            "PREPARACIÓN EN CURSO",
-            self.fonts["micro"],
-            (184, 199, 205),
-            (98, 315)
-        )
-
-        # Indicador activo
-        rr(
-            self.screen,
-            pygame.Rect(500, 287, 135, 32),
-            (55, 76, 87),
-            16
-        )
-        pygame.draw.circle(
-            self.screen, GREEN, (519, 303), 5
-        )
-        text(
-            self.screen,
-            "EN MARCHA",
-            self.fonts["micro"],
-            WHITE,
-            (531, 294)
-        )
-
-        # Fondo visual del chef: halo, pero sin invadir texto.
-        pygame.draw.circle(
-            self.screen,
-            (255, 246, 232),
-            (275, 540),
-            165
-        )
-        pygame.draw.circle(
-            self.screen,
-            (252, 239, 219),
-            (275, 540),
-            132,
-            2
-        )
-
-        # Líneas decorativas tipo radar
-        pygame.draw.arc(
-            self.screen,
-            (246, 220, 191),
-            (115, 380, 320, 320),
-            math.radians(205),
-            math.radians(330),
-            2
-        )
-
-        # Chef estrictamente contenido en su zona
-        self.draw_chef_cooking(
-            pygame.Rect(95, 338, 350, 390)
-        )
-
-        # ========================================================
-        # BURBUJA / TIP DEL CHEF — COLUMNA DERECHA
-        # ========================================================
-        bubble = pygame.Rect(390, 405, 245, 160)
-
-        self.draw_shadow(
-            bubble,
-            22,
-            (0, 5),
-            18
-        )
-
-        rr(
-            self.screen,
-            bubble,
-            (252, 248, 241),
-            22,
+            30,
             2,
-            (239, 215, 190)
+            LIGHT_ORANGE
         )
 
-        # Pico hacia el chef
-        pygame.draw.polygon(
-            self.screen,
-            (252, 248, 241),
-            [
-                (390, 470),
-                (362, 486),
-                (390, 501)
-            ]
-        )
+        self.draw_chef_cooking()
 
-        pygame.draw.rect(
-            self.screen,
-            ORANGE,
-            (415, 429, 42, 5),
-            border_radius=3
-        )
-
-        text(
-            self.screen,
-            "TIP DEL CHEF",
-            self.fonts["micro"],
-            DARK_ORANGE,
-            (415, 444)
-        )
-
-        text(
-            self.screen,
-            "“Primero mezclaremos",
-            self.fonts["body_bold"],
-            DARK,
-            (415, 472)
-        )
-        text(
-            self.screen,
-            "los datos de calidad...”",
-            self.fonts["small"],
-            ORANGE,
-            (415, 503)
-        )
-
-        # Mini insight inferior
+        # Pensamiento
         rr(
             self.screen,
-            pygame.Rect(390, 594, 245, 76),
-            PALE_ORANGE,
-            18
-        )
-        pygame.draw.circle(
-            self.screen, ORANGE, (415, 620), 8
-        )
-        text(
-            self.screen,
-            "OBJETIVO",
-            self.fonts["micro"],
-            DARK_ORANGE,
-            (432, 607)
-        )
-        text(
-            self.screen,
-            "Convertir datos en valor.",
-            self.fonts["small"],
-            DARK,
-            (432, 629)
+            pygame.Rect(155, 280, 390, 95),
+            (255, 249, 239),
+            24,
+            2,
+            (249, 210, 171)
         )
 
-        # ========================================================
-        # RECETA DE DATOS
-        # ========================================================
-        # Cabecera azul para diferenciarla visualmente del chef.
+        text(
+            self.screen,
+            "“Primero mezclaremos los",
+            self.fonts["small"],
+            DARK,
+            (350, 312),
+            True
+        )
+
+        text(
+            self.screen,
+            "datos de calidad...”",
+            self.fonts["small"],
+            DARK,
+            (350, 342),
+            True
+        )
+
+        # Zona olla
         rr(
             self.screen,
-            pygame.Rect(695, 270, 770, 72),
-            DARK,
-            28
-        )
-        pygame.draw.rect(
-            self.screen,
-            DARK,
-            (695, 310, 770, 32)
+            pygame.Rect(760, 270, 610, 465),
+            (255, 252, 247),
+            30,
+            2,
+            LIGHT_BLUE
         )
 
         text(
             self.screen,
             "RECETA DE DATOS",
             self.fonts["subtitle"],
-            WHITE,
-            (730, 292)
-        )
-
-        rr(
-            self.screen,
-            pygame.Rect(1295, 288, 135, 34),
-            (55, 76, 87),
-            17
-        )
-        pygame.draw.circle(
-            self.screen, GREEN, (1315, 305), 5
-        )
-        text(
-            self.screen,
-            "LISTO",
-            self.fonts["micro"],
-            WHITE,
-            (1328, 297)
-        )
-
-        # Subtítulo de receta
-        text(
-            self.screen,
-            "INGREDIENTES DE LA INFORMACIÓN",
-            self.fonts["tiny"],
-            MUTED,
-            (730, 365)
-        )
-
-        # ========================================================
-        # INGREDIENTES — COLUMNA IZQUIERDA
-        # ========================================================
-        ingredient_cards = [
-            ("DB", "BASE DE DATOS", "Origen", BLUE),
-            ("✦", "DATOS LIMPIOS", "Preparados", GREEN),
-            ("✓", "DATOS VALIDADOS", "Confiables", ORANGE),
-            ("▥", "INFORMACIÓN", "Estructurada", DARK_ORANGE),
-        ]
-
-        card_x = 730
-        card_y = 397
-        card_w = 280
-        card_h = 64
-        card_gap = 10
-
-        for i, (icon, name, desc, color) in enumerate(ingredient_cards):
-            y = card_y + i * (card_h + card_gap)
-
-            rr(
-                self.screen,
-                pygame.Rect(card_x, y, card_w, card_h),
-                (250, 249, 246),
-                18,
-                1,
-                (231, 224, 215)
-            )
-
-            pygame.draw.circle(
-                self.screen,
-                (242, 238, 230),
-                (card_x + 34, y + 32),
-                23
-            )
-
-            text(
-                self.screen,
-                icon,
-                self.fonts["tiny"],
-                color,
-                (card_x + 34, y + 32),
-                True
-            )
-
-            text(
-                self.screen,
-                name,
-                self.fonts["micro"],
-                DARK,
-                (card_x + 70, y + 17)
-            )
-            text(
-                self.screen,
-                desc,
-                self.fonts["micro"],
-                MUTED,
-                (card_x + 70, y + 37)
-            )
-
-            pygame.draw.circle(
-                self.screen,
-                color,
-                (card_x + card_w - 22, y + 32),
-                9
-            )
-            text(
-                self.screen,
-                "✓",
-                self.fonts["micro"],
-                WHITE,
-                (card_x + card_w - 22, y + 32),
-                True
-            )
-
-        # ========================================================
-        # CONEXIONES HACIA LA OLLA
-        # ========================================================
-        pot_center = (1260, 548)
-
-        for i in range(4):
-            sy = card_y + i * (card_h + card_gap) + card_h // 2
-            start_pt = (card_x + card_w + 10, sy)
-
-            # Curva simulada con segmentos suaves
-            points = []
-            for k in range(13):
-                u = k / 12
-                px = start_pt[0] + (pot_center[0] - start_pt[0]) * u
-                py = sy + (pot_center[1] - sy) * u
-                py += math.sin(u * math.pi) * (8 + i * 2)
-                points.append((int(px), int(py)))
-
-            pygame.draw.lines(
-                self.screen,
-                (222, 216, 207),
-                False,
-                points,
-                2
-            )
-
-            pygame.draw.circle(
-                self.screen,
-                ORANGE if i == 2 else (198, 205, 208),
-                start_pt,
-                4
-            )
-
-        # ========================================================
-        # OLLA — ELEMENTO HERO
-        # ========================================================
-        rr(
-            self.screen,
-            pygame.Rect(1035, 390, 380, 300),
-            (253, 249, 242),
-            24,
-            1,
-            (241, 229, 214)
-        )
-
-        text(
-            self.screen,
-            "COCINANDO",
-            self.fonts["tiny"],
-            DARK_ORANGE,
-            (1225, 414),
+            BLUE,
+            (1065, 315),
             True
         )
 
-        # Anillo detrás de la olla
-        pygame.draw.circle(
-            self.screen,
-            (255, 239, 218),
-            pot_center,
-            118
-        )
-        pygame.draw.circle(
-            self.screen,
-            (249, 221, 188),
-            pot_center,
-            94,
-            2
-        )
+        self.draw_pot(1060, 590)
 
-        # Olla principal
-        self.draw_pot(*pot_center)
-
-        # Vapor animado
+        # Vapor
         for particle in self.steam:
             particle.draw(self.screen)
 
-        # Etiqueta inferior del hero
-        rr(
-            self.screen,
-            pygame.Rect(1090, 657, 340, 42),
-            WHITE,
-            21,
-            1,
-            (232, 222, 210)
-        )
-        pygame.draw.circle(
-            self.screen,
-            GREEN,
-            (1115, 678),
-            6
-        )
-        text(
-            self.screen,
-            "DATOS + CALIDAD = INFORMACIÓN ÚTIL",
-            self.fonts["micro"],
-            DARK,
-            (1130, 669)
-        )
-
-        # ========================================================
-        # ANIMACIONES DE INGREDIENTES
-        # ========================================================
+        # Ingredientes
         for ingredient in self.ingredients:
-            ingredient.draw(
-                self.screen,
-                self.fonts["icon"]
-            )
+            ingredient.draw(self.screen, self.fonts["icon"])
 
-        # ========================================================
-        # BARRA DE PROGRESO INFERIOR
-        # ========================================================
-        done = sum(
-            1 for item in self.ingredients
-            if item.done
-        )
+        # Progreso
+        done = sum(1 for item in self.ingredients if item.done)
         progress = done / len(self.ingredients)
 
-        # Banda de estado
-        rr(
-            self.screen,
-            pygame.Rect(70, 775, 1395, 58),
-            DARK,
-            20
-        )
+        bar = pygame.Rect(400, 770, 736, 22)
 
-        text(
-            self.screen,
-            "COCINANDO INSIGHTS",
-            self.fonts["small"],
-            WHITE,
-            (98, 791)
-        )
-
-        text(
-            self.screen,
-            f"{int(progress * 100)}%",
-            self.fonts["body_bold"],
-            ORANGE,
-            (260, 788)
-        )
-
-        bar = pygame.Rect(330, 792, 780, 22)
-        rr(
-            self.screen,
-            bar,
-            (73, 88, 98),
-            11
-        )
+        rr(self.screen, bar, (231, 231, 231), 11)
 
         if progress > 0:
             fill = pygame.Rect(
                 bar.x,
                 bar.y,
-                max(10, int(bar.width * progress)),
+                max(8, int(bar.width * progress)),
                 bar.height
             )
-            rr(
-                self.screen,
-                fill,
-                ORANGE,
-                11
-            )
-
-        # Marcadores de etapas
-        steps = [
-            ("01", "PREPARAR"),
-            ("02", "VALIDAR"),
-            ("03", "TRANSFORMAR"),
-            ("04", "COCINAR"),
-        ]
-
-        sx = 1170
-        for i, (num, label) in enumerate(steps):
-            active = i <= done
-            c = ORANGE if active else (102, 115, 123)
-
-            pygame.draw.circle(
-                self.screen,
-                c,
-                (sx + i * 68, 804),
-                9
-            )
-
-            text(
-                self.screen,
-                num,
-                self.fonts["micro"],
-                WHITE,
-                (sx + i * 68, 804),
-                True
-            )
+            rr(self.screen, fill, ORANGE, 11)
 
         text(
             self.screen,
-            "Los ingredientes se integran automáticamente.",
-            self.fonts["micro"],
-            (184, 199, 205),
-            (330, 818)
+            f"COCINANDO INSIGHTS... {int(progress * 100)}%",
+            self.fonts["bold"],
+            DARK,
+            (768, 745),
+            True
         )
 
     # ============================================================
-    # TRANSFORMACION
+    # TRANSFORMACIÓN
     # ============================================================
 
     def draw_transform(self):
-        """Pantalla de transformación: pipeline visual tipo dashboard enterprise."""
         self.draw_background()
         self.draw_header()
 
-        progress = min(1.0, self.scene_time / 3.0)
-        pulse = (math.sin(self.t * 4.0) + 1.0) * 0.5
+        alpha = int(
+            min(
+                255,
+                max(0, self.scene_time * 180)
+            )
+        )
 
-<<<<<<< HEAD
         text(
             self.screen,
             "LA RECETA ESTÁ FUNCIONANDO...",
@@ -1937,194 +782,49 @@ class DataChefScreen:
             (768, 340),
             True
         )
-=======
-        # ============================================================
-        # HERO / TITULO
-        # ============================================================
-        rr(self.screen, pygame.Rect(78, 158, 205, 30), LIGHT_ORANGE, 15)
-        text(self.screen, "04  /  TRANSFORMACION", self.fonts["micro"], DARK_ORANGE,
-             (180, 173), True)
 
-        title_a = "TRANSFORMANDO"
-        title_b = "DATOS..."
-        f = self.fonts["title"]
-        wa = f.size(title_a)[0]
-        wb = f.size(title_b)[0]
-        x0 = (WIDTH - wa - wb - 18) // 2
-        text(self.screen, title_a, f, DARK, (x0, 166))
-        text(self.screen, title_b, f, ORANGE, (x0 + wa + 18, 166))
->>>>>>> 5eb0eb3 (Actualizacion del juego)
+        radius = int(80 + math.sin(self.t * 5) * 8)
 
-        text(self.screen,
-             "Los ingredientes se convierten en información lista para decidir.",
-             self.fonts["body"], MUTED, (WIDTH // 2, 228), True)
+        for i in range(4):
+            r = radius + i * 28 + int(math.sin(self.t * 3 + i) * 8)
+            pygame.draw.circle(
+                self.screen,
+                ORANGE if i % 2 == 0 else BLUE,
+                (768, 505),
+                r,
+                4
+            )
 
-        pygame.draw.line(self.screen, ORANGE, (708, 258), (828, 258), 3)
-        pygame.draw.circle(self.screen, ORANGE, (694, 258), 4)
-        pygame.draw.circle(self.screen, ORANGE, (842, 258), 4)
+        pygame.draw.circle(self.screen, WHITE, (768, 505), 74)
+        text(
+            self.screen,
+            "📊",
+            self.fonts["big"],
+            DARK,
+            (768, 500),
+            True
+        )
 
-        # ============================================================
-        # PANEL PRINCIPAL
-        # ============================================================
-        panel = pygame.Rect(78, 292, 1380, 365)
-        self.draw_shadow(panel, 28, (0, 8), 22)
-        rr(self.screen, panel, WHITE, 28, 2, (228, 220, 210))
+        progress = min(1, self.scene_time / 3.0)
 
-        # Cabecera compacta
-        rr(self.screen, pygame.Rect(panel.x, panel.y, panel.width, 64), DARK, 28)
-        pygame.draw.rect(self.screen, DARK,
-                         (panel.x, panel.y + 32, panel.width, 32))
-        text(self.screen, "PIPELINE DE TRANSFORMACION", self.fonts["small"], WHITE,
-             (panel.x + 28, panel.y + 19))
-        text(self.screen, "ETL  /  PROCESAMIENTO EN TIEMPO REAL", self.fonts["micro"],
-             (190, 205, 212), (panel.x + 280, panel.y + 23))
+        bar = pygame.Rect(468, 690, 600, 25)
+        rr(self.screen, bar, (225, 225, 225), 13)
 
-        status = pygame.Rect(panel.right - 176, panel.y + 16, 146, 32)
-        rr(self.screen, status, (55, 76, 87), 16)
-        pygame.draw.circle(self.screen, GREEN, (status.x + 21, status.centery), 5)
-        text(self.screen, "EN MARCHA", self.fonts["micro"], WHITE,
-             (status.x + 34, status.y + 8))
+        fill = pygame.Rect(bar.x, bar.y, int(bar.width * progress), bar.height)
+        rr(self.screen, fill, GREEN, 13)
 
-        # ============================================================
-        # COLUMNAS: INPUT -> TRANSFORMACION -> OUTPUT
-        # ============================================================
-        content_y = panel.y + 92
+        text(
+            self.screen,
+            f"{int(progress * 100)}%",
+            self.fonts["bold"],
+            GREEN,
+            (768, 650),
+            True
+        )
 
-        # ----- INPUT -----
-        input_box = pygame.Rect(112, content_y, 320, 220)
-        rr(self.screen, input_box, (250, 249, 246), 22, 1, (232, 225, 216))
-        text(self.screen, "01", self.fonts["micro"], ORANGE, (136, content_y + 20))
-        text(self.screen, "INGREDIENTES", self.fonts["subtitle"], DARK,
-             (170, content_y + 14))
-        text(self.screen, "Fuentes preparadas", self.fonts["micro"], MUTED,
-             (170, content_y + 48))
-
-        ingredients = [
-            ("DB", "BASE DE DATOS", BLUE),
-            ("✓", "DATOS LIMPIOS", GREEN),
-            ("▦", "DATOS VALIDADOS", ORANGE),
-        ]
-        for i, (icon, label, color) in enumerate(ingredients):
-            y = content_y + 82 + i * 42
-            pygame.draw.circle(self.screen, (244, 241, 235), (143, y + 15), 15)
-            text(self.screen, icon, self.fonts["micro"], color, (143, y + 15), True)
-            text(self.screen, label, self.fonts["micro"], DARK, (170, y + 7))
-            pygame.draw.circle(self.screen, color, (399, y + 15), 5)
-
-        # ----- CENTRO: MOTOR -----
-        cx, cy = 768, content_y + 111
-
-        # Separadores de columna
-        line(self.screen, (235, 229, 220), (466, content_y + 12), (466, content_y + 230), 1)
-        line(self.screen, (235, 229, 220), (1070, content_y + 12), (1070, content_y + 230), 1)
-
-        text(self.screen, "02", self.fonts["micro"], BLUE, (cx - 28, content_y + 8))
-        text(self.screen, "MOTOR DE DATOS", self.fonts["small"], DARK,
-             (cx + 2, content_y + 5), True)
-
-        # Anillo base y halo
-        pygame.draw.circle(self.screen, (247, 244, 238), (cx, cy), 93)
-        pygame.draw.circle(self.screen, (232, 225, 216), (cx, cy), 93, 2)
-        pygame.draw.circle(self.screen, (250, 248, 244), (cx, cy), 74)
-
-        # Arcos de actividad
-        arc = pygame.Rect(cx - 82, cy - 82, 164, 164)
-        pygame.draw.arc(self.screen, (226, 232, 238), arc, 0, math.tau, 7)
-        if progress > 0:
-            pygame.draw.arc(self.screen, ORANGE, arc, math.radians(225),
-                            math.radians(225) + math.tau * progress, 8)
-            arc2 = pygame.Rect(cx - 67, cy - 67, 134, 134)
-            pygame.draw.arc(self.screen, BLUE, arc2, math.radians(35),
-                            math.radians(35) + math.tau * min(1, progress * 0.9), 4)
-
-        # Nodo central con barras de datos animadas
-        bar_heights = (22, 34, 49, 31, 40)
-        for i, h in enumerate(bar_heights):
-            x = cx - 48 + i * 24
-            animated = int(h * (0.78 + 0.22 * math.sin(self.t * 5 + i)))
-            pygame.draw.rect(self.screen, DARK, (x, cy + 12 - animated, 12, animated), border_radius=4)
-
-        text(self.screen, f"{int(progress * 100)}%", self.fonts["subtitle"], DARK,
-             (cx, cy + 47), True)
-        text(self.screen, "TRANSFORMANDO", self.fonts["micro"], ORANGE,
-             (cx, cy + 76), True)
-
-        # Punto de actividad girando
-        angle = math.radians(225) + math.tau * progress + self.t * 0.35
-        mx = int(cx + math.cos(angle) * 93)
-        my = int(cy + math.sin(angle) * 93)
-        pygame.draw.circle(self.screen, WHITE, (mx, my), 9)
-        pygame.draw.circle(self.screen, ORANGE, (mx, my), 6)
-
-        # Flujo visual izquierda -> centro -> derecha
-        for i in range(5):
-            phase = (self.t * 0.7 + i / 5.0) % 1.0
-            px = 435 + phase * 260
-            py = cy + math.sin(phase * math.pi) * (12 + i * 2)
-            alpha = int(90 + 120 * (1 - phase))
-            dot = pygame.Surface((16, 16), pygame.SRCALPHA)
-            pygame.draw.circle(dot, (*ORANGE, alpha), (8, 8), 4)
-            self.screen.blit(dot, (int(px - 8), int(py - 8)))
-
-            px2 = 1015 + phase * 80
-            py2 = cy + math.sin(phase * math.pi) * (10 + i * 2)
-            dot2 = pygame.Surface((16, 16), pygame.SRCALPHA)
-            pygame.draw.circle(dot2, (*BLUE, alpha), (8, 8), 4)
-            self.screen.blit(dot2, (int(px2 - 8), int(py2 - 8)))
-
-        # ----- OUTPUT -----
-        output_box = pygame.Rect(1100, content_y, 320, 220)
-        rr(self.screen, output_box, (248, 250, 252), 22, 1, (220, 229, 237))
-        text(self.screen, "03", self.fonts["micro"], GREEN, (1124, content_y + 20))
-        text(self.screen, "RESULTADO", self.fonts["subtitle"], DARK,
-             (1158, content_y + 14))
-        text(self.screen, "Información útil", self.fonts["micro"], MUTED,
-             (1158, content_y + 48))
-
-        kpis = [("CALIDAD", "98%", GREEN), ("ESTRUCTURA", "OK", BLUE), ("INSIGHTS", "LISTOS", ORANGE)]
-        for i, (label, value, color) in enumerate(kpis):
-            y = content_y + 84 + i * 42
-            pygame.draw.circle(self.screen, color, (1131, y + 15), 6)
-            text(self.screen, label, self.fonts["micro"], MUTED, (1150, y + 7))
-            text(self.screen, value, self.fonts["micro"], DARK, (1370, y + 7))
-
-        # ============================================================
-        # BARRA DE ESTADO INFERIOR
-        # ============================================================
-        progress_box = pygame.Rect(210, 688, 1116, 92)
-        self.draw_shadow(progress_box, 22, (0, 5), 15)
-        rr(self.screen, progress_box, DARK, 22)
-
-        text(self.screen, "COCINANDO INSIGHTS", self.fonts["small"], WHITE,
-             (242, 705))
-        text(self.screen, "Transformando datos en decisiones.", self.fonts["micro"],
-             (183, 198, 205), (242, 737))
-
-        bar = pygame.Rect(610, 710, 545, 15)
-        rr(self.screen, bar, (73, 88, 98), 8)
-        if progress > 0:
-            rr(self.screen, pygame.Rect(bar.x, bar.y, max(8, int(bar.width * progress)), bar.height),
-               ORANGE, 8)
-
-        text(self.screen, f"{int(progress * 100)}%", self.fonts["body_bold"], ORANGE,
-             (1190, 700))
-
-        steps = [("01", "PREPARAR"), ("02", "VALIDAR"), ("03", "TRANSFORMAR"), ("04", "COCINAR")]
-        sx = 625
-        gap = 158
-        for i, (num, label) in enumerate(steps):
-            x = sx + i * gap
-            active = progress >= (i + 1) / 4
-            c = ORANGE if active else (93, 108, 118)
-            pygame.draw.circle(self.screen, c, (x, 755), 8)
-            text(self.screen, num, self.fonts["micro"], WHITE, (x, 755), True)
-            text(self.screen, label, self.fonts["micro"], (183, 198, 205), (x, 766), True)
-            if i < 3:
-                line(self.screen, (93, 108, 118), (x + 11, 755), (x + gap - 11, 755), 2)
-
-        # Flash final muy sutil
+        # Destello final
         if self.scene_time > 2.3:
-            flash_alpha = int(min(70, (self.scene_time - 2.3) * 100))
+            flash_alpha = int(min(220, (self.scene_time - 2.3) * 300))
             layer = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
             layer.fill((255, 255, 255, flash_alpha))
             self.screen.blit(layer, (0, 0))
@@ -2139,7 +839,7 @@ class DataChefScreen:
 
         text(
             self.screen,
-            "¡RECETA TERMINADA!",
+            "✨ ¡RECETA TERMINADA! ✨",
             self.fonts["title"],
             ORANGE,
             (768, 165),
@@ -2155,19 +855,8 @@ class DataChefScreen:
             True
         )
 
-        panel_box = pygame.Rect(
-            210,
-            280,
-            930,
-            490
-        )
-
-        self.draw_shadow(
-            panel_box,
-            32,
-            (0, 8),
-            25
-        )
+        # Panel
+        panel_box = pygame.Rect(210, 280, 930, 490)
 
         rr(
             self.screen,
@@ -2178,23 +867,16 @@ class DataChefScreen:
             LIGHT_BLUE
         )
 
-        reveal = min(
-            1,
-            self.panel_reveal
-        )
+        reveal = min(1, self.panel_reveal)
+        visible_w = int(panel_box.width * reveal)
 
         if self.panel:
             panel_rect = self.panel.get_rect(
-                center=panel_box.center
+                center=(panel_box.centerx, panel_box.centery)
             )
 
-            if (
-                panel_rect.width > panel_box.width - 40
-                or
-                panel_rect.height > panel_box.height - 40
-            ):
+            if panel_rect.width > panel_box.width - 40 or panel_rect.height > panel_box.height - 40:
                 iw, ih = self.panel.get_size()
-
                 scale = min(
                     (panel_box.width - 40) / iw,
                     (panel_box.height - 40) / ih
@@ -2202,10 +884,7 @@ class DataChefScreen:
 
                 scaled = pygame.transform.smoothscale(
                     self.panel,
-                    (
-                        int(iw * scale),
-                        int(ih * scale)
-                    )
+                    (int(iw * scale), int(ih * scale))
                 )
 
                 panel_rect = scaled.get_rect(
@@ -2220,12 +899,8 @@ class DataChefScreen:
                 )
 
                 old_clip = self.screen.get_clip()
-
                 self.screen.set_clip(clip)
-                self.screen.blit(
-                    scaled,
-                    panel_rect
-                )
+                self.screen.blit(scaled, panel_rect)
                 self.screen.set_clip(old_clip)
 
             else:
@@ -2237,22 +912,18 @@ class DataChefScreen:
                 )
 
                 old_clip = self.screen.get_clip()
-
                 self.screen.set_clip(clip)
-                self.screen.blit(
-                    self.panel,
-                    panel_rect
-                )
+                self.screen.blit(self.panel, panel_rect)
                 self.screen.set_clip(old_clip)
 
         else:
-            self.draw_demo_dashboard(
-                panel_box,
-                reveal
-            )
+            # Panel de ejemplo si aún no sube panel_final.png
+            self.draw_demo_dashboard(panel_box, reveal)
 
+        # Chef orgulloso
         self.draw_chef_proud()
 
+        # Mensaje final
         rr(
             self.screen,
             pygame.Rect(250, 790, 800, 55),
@@ -2265,13 +936,14 @@ class DataChefScreen:
         text(
             self.screen,
             "“Datos de calidad → Información confiable → Mejores decisiones.”",
-            self.fonts["body_bold"],
+            self.fonts["bold"],
             DARK_ORANGE,
             (650, 817),
             True
         )
 
     def draw_demo_dashboard(self, box, reveal):
+        # Dashboard de muestra mientras no exista panel_final.png
         clip = pygame.Rect(
             box.x + 25,
             box.y + 25,
@@ -2280,22 +952,10 @@ class DataChefScreen:
         )
 
         old_clip = self.screen.get_clip()
-
         self.screen.set_clip(clip)
 
-        inner = pygame.Rect(
-            box.x + 25,
-            box.y + 25,
-            box.width - 50,
-            box.height - 50
-        )
-
-        rr(
-            self.screen,
-            inner,
-            (248, 250, 252),
-            18
-        )
+        inner = pygame.Rect(box.x + 25, box.y + 25, box.width - 50, box.height - 50)
+        rr(self.screen, inner, (248, 250, 252), 18)
 
         text(
             self.screen,
@@ -2314,63 +974,20 @@ class DataChefScreen:
         x = inner.x + 30
 
         for title, value, color in cards:
-            card = pygame.Rect(
-                x,
-                inner.y + 85,
-                230,
-                105
-            )
-
-            rr(
-                self.screen,
-                card,
-                WHITE,
-                18,
-                2,
-                (225, 230, 235)
-            )
-
-            text(
-                self.screen,
-                title,
-                self.fonts["small"],
-                MUTED,
-                (card.x + 18, card.y + 18)
-            )
-
-            text(
-                self.screen,
-                value,
-                self.fonts["subtitle"],
-                color,
-                (card.x + 18, card.y + 52)
-            )
-
+            card = pygame.Rect(x, inner.y + 85, 230, 105)
+            rr(self.screen, card, WHITE, 18, 2, (225, 230, 235))
+            text(self.screen, title, self.fonts["small"], MUTED, (card.x + 18, card.y + 18))
+            text(self.screen, value, self.fonts["subtitle"], color, (card.x + 18, card.y + 52))
             x += 250
 
-        graph = pygame.Rect(
-            inner.x + 30,
-            inner.y + 225,
-            530,
-            190
-        )
+        # Gráfico ficticio
+        graph = pygame.Rect(inner.x + 30, inner.y + 225, 530, 190)
+        rr(self.screen, graph, WHITE, 18, 2, (225, 230, 235))
 
-        rr(
-            self.screen,
-            graph,
-            WHITE,
-            18,
-            2,
-            (225, 230, 235)
-        )
-
-        values = [
-            60, 95, 80, 130,
-            115, 165, 145
-        ]
-
+        values = [60, 95, 80, 130, 115, 165, 145]
         px = graph.x + 35
         base_y = graph.bottom - 30
+
         points = []
 
         for i, value in enumerate(values):
@@ -2378,48 +995,16 @@ class DataChefScreen:
             y = base_y - value
             points.append((x, y))
 
-        pygame.draw.lines(
-            self.screen,
-            BLUE,
-            False,
-            points,
-            4
-        )
+        pygame.draw.lines(self.screen, BLUE, False, points, 4)
 
         for p in points:
-            pygame.draw.circle(
-                self.screen,
-                ORANGE,
-                p,
-                6
-            )
+            pygame.draw.circle(self.screen, ORANGE, p, 6)
 
-        cx, cy = (
-            inner.right - 180,
-            inner.y + 320
-        )
-
-        pygame.draw.circle(
-            self.screen,
-            LIGHT_ORANGE,
-            (cx, cy),
-            75
-        )
-
-        pygame.draw.circle(
-            self.screen,
-            ORANGE,
-            (cx, cy),
-            50,
-            16
-        )
-
-        pygame.draw.circle(
-            self.screen,
-            WHITE,
-            (cx, cy),
-            25
-        )
+        # Dona simulada
+        cx, cy = inner.right - 180, inner.y + 320
+        pygame.draw.circle(self.screen, LIGHT_ORANGE, (cx, cy), 75)
+        pygame.draw.circle(self.screen, ORANGE, (cx, cy), 50, 16)
+        pygame.draw.circle(self.screen, WHITE, (cx, cy), 25)
 
         text(
             self.screen,
@@ -2461,7 +1046,6 @@ class DataChefScreen:
                     elif self.scene == "cooking":
                         for ingredient in self.ingredients:
                             ingredient.done = True
-
                         self.set_scene("transform")
 
                     elif self.scene == "transform":
@@ -2470,18 +1054,13 @@ class DataChefScreen:
             elif event.type == pygame.MOUSEBUTTONDOWN:
 
                 if event.button == 1:
+
                     logical = self.logical(event.pos)
 
                     if self.scene == "intro":
-                        button = pygame.Rect(
-                            1015,
-                            650,
-                            300,
-                            52
-                        )
+                        button = pygame.Rect(600, 755, 336, 58)
 
                         if button.collidepoint(logical):
-<<<<<<< HEAD
                             print("[DATA CHEF] EMPEZAR -> PANEL SUCIO")
                             self.set_scene("dirty_panel")
 
@@ -2489,13 +1068,6 @@ class DataChefScreen:
                         button = pygame.Rect(585, 800, 366, 52)
                         if button.collidepoint(logical):
                             print("[DATA CHEF] DATOS SUCIOS -> COCINANDO")
-=======
-                            print(
-                                "[DATA CHEF] "
-                                "EMPEZAR -> COCINANDO"
-                            )
-
->>>>>>> 5eb0eb3 (Actualizacion del juego)
                             self.set_scene("cooking")
 
     # ============================================================
@@ -2514,39 +1086,19 @@ class DataChefScreen:
             for ingredient in self.ingredients:
                 ingredient.update(dt)
 
-            done = sum(
-                1
-                for ingredient in self.ingredients
-                if ingredient.done
-            )
+            done = sum(1 for ingredient in self.ingredients if ingredient.done)
 
             for particle in self.steam:
-                particle.update(
-                    dt,
-                    self.steam_origin
-                )
+                particle.update(dt, self.steam_origin)
 
-            if (
-                done == len(self.ingredients)
-                and self.scene_time > 4
-            ):
-                print(
-                    "[DATA CHEF] "
-                    "INGREDIENTES LISTOS -> "
-                    "TRANSFORMACIÓN"
-                )
-
+            if done == len(self.ingredients) and self.scene_time > 4:
+                print("[DATA CHEF] INGREDIENTES LISTOS -> TRANSFORMACIÓN")
                 self.set_scene("transform")
 
         elif self.scene == "transform":
 
             if self.scene_time >= 3.2:
-                print(
-                    "[DATA CHEF] "
-                    "TRANSFORMACIÓN COMPLETA -> "
-                    "PANEL FINAL"
-                )
-
+                print("[DATA CHEF] TRANSFORMACIÓN COMPLETA -> PANEL FINAL")
                 self.set_scene("final")
 
         elif self.scene == "final":
@@ -2576,23 +1128,13 @@ class DataChefScreen:
         elif self.scene == "final":
             self.draw_final()
 
-        # Adaptar pantalla lógica a ventana.
+        # Adaptar pantalla lógica a ventana
         ww, wh = self.window.get_size()
 
-        self.scale = min(
-            ww / WIDTH,
-            wh / HEIGHT
-        )
+        self.scale = min(ww / WIDTH, wh / HEIGHT)
 
-        rw = max(
-            1,
-            int(WIDTH * self.scale)
-        )
-
-        rh = max(
-            1,
-            int(HEIGHT * self.scale)
-        )
+        rw = max(1, int(WIDTH * self.scale))
+        rh = max(1, int(HEIGHT * self.scale))
 
         self.ox = (ww - rw) // 2
         self.oy = (wh - rh) // 2
@@ -2602,14 +1144,8 @@ class DataChefScreen:
             (rw, rh)
         )
 
-        self.window.fill(
-            (228, 228, 228)
-        )
-
-        self.window.blit(
-            scaled,
-            (self.ox, self.oy)
-        )
+        self.window.fill((232, 232, 232))
+        self.window.blit(scaled, (self.ox, self.oy))
 
         pygame.display.flip()
 
