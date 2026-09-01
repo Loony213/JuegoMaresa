@@ -808,11 +808,28 @@ class DataChefApp:
             self.message_timer = 3.0
             return
 
-        # Mantiene el comportamiento original.
-        role_arg = (
-            "rrhh"
-            if role_name == "RECURSOS HUMANOS"
-            else "tecnologia"
+        # ----------------------------------------------------
+        # ENVÍA EL ROL REAL SELECCIONADO A LA PANTALLA 02
+        # Antes, cualquier rol distinto de RRHH se convertía
+        # incorrectamente en "tecnologia".
+        # ----------------------------------------------------
+        role_map = {
+            "TECNOLOGÍA": "tecnologia",
+            "RECURSOS HUMANOS": "rrhh",
+            "FINANZAS": "finanzas",
+            "OPERACIONES": "operaciones",
+            "COMERCIAL / VENTAS": "comercial",
+            "AUDITORÍA / RIESGO": "auditoria",
+        }
+
+        role_arg = role_map.get(
+            role_name,
+            "tecnologia",
+        )
+
+        print(
+            "[DATA CHEF] Abriendo pantalla 02 con rol:",
+            role_arg,
         )
 
         try:

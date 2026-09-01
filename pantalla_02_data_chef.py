@@ -35,6 +35,16 @@ BLUE = (39, 108, 213)
 BLUE_SOFT = (234, 243, 255)
 
 GREEN = (67, 171, 112)
+GREEN_SOFT = (230, 246, 236)
+
+PURPLE = (133, 88, 180)
+PURPLE_SOFT = (241, 232, 250)
+
+RED = (207, 78, 78)
+RED_SOFT = (252, 232, 232)
+
+CYAN = (50, 151, 171)
+CYAN_SOFT = (226, 244, 247)
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 ASSETS = os.path.join(BASE, "assets")
@@ -209,51 +219,138 @@ class App:
         # ----------------------------------------------------
         # ROL
         # ----------------------------------------------------
+        # El argumento llega desde data_chef_maresa_inicio.py.
+        # Se conserva el rol seleccionado para cargar exactamente
+        # su imagen y personalizar el texto de esta pantalla.
         raw_role = (
-            sys.argv[1].lower()
+            sys.argv[1].strip().lower()
             if len(sys.argv) > 1
             else "tecnologia"
         )
 
-        self.role = (
-            "rrhh"
-            if raw_role in (
-                "rrhh",
-                "recursos humanos",
-                "recursos_humanos",
-            )
-            else "tecnologia"
+        # Acepta también nombres legibles por si ejecutas la pantalla
+        # manualmente desde consola.
+        role_aliases = {
+            "tecnologia": "tecnologia",
+            "tecnología": "tecnologia",
+
+            "rrhh": "rrhh",
+            "recursos humanos": "rrhh",
+            "recursos_humanos": "rrhh",
+
+            "finanzas": "finanzas",
+
+            "operaciones": "operaciones",
+
+            "comercial": "comercial",
+            "ventas": "comercial",
+            "comercial / ventas": "comercial",
+
+            "auditoria": "auditoria",
+            "auditoría": "auditoria",
+            "riesgo": "auditoria",
+            "auditoría / riesgo": "auditoria",
+        }
+
+        self.role = role_aliases.get(
+            raw_role,
+            "tecnologia",
         )
 
-        if self.role == "tecnologia":
-            self.role_name = "TECNOLOGÍA"
-            self.role_color = BLUE
-            self.role_soft = BLUE_SOFT
-            self.role_img_name = "tecnologia.png"
+        role_configs = {
+            "tecnologia": {
+                "name": "TECNOLOGÍA",
+                "color": BLUE,
+                "soft": BLUE_SOFT,
+                "image": "tecnologia.png",
+                "quote": "Quiero crear un panel específico para Tecnología.",
+                "detail": (
+                    "Organiza, visualiza y convierte datos de "
+                    "sistemas y tecnología en información útil."
+                ),
+            },
 
-            self.quote = (
-                "Quiero crear un panel específico"
-            )
+            "rrhh": {
+                "name": "RECURSOS HUMANOS",
+                "color": ORANGE,
+                "soft": ORANGE_SOFT,
+                "image": "rrhh.png",
+                "quote": (
+                    "Quiero crear un panel específico para "
+                    "Recursos Humanos."
+                ),
+                "detail": (
+                    "Organiza y transforma datos de talento, "
+                    "personas y procesos en información útil."
+                ),
+            },
 
-            self.detail = (
-                "para organizar, visualizar y convertir "
-                "datos tecnológicos en información útil."
-            )
+            "finanzas": {
+                "name": "FINANZAS",
+                "color": GREEN,
+                "soft": GREEN_SOFT,
+                "image": "finanzas.png",
+                "quote": "Quiero crear un panel específico para Finanzas.",
+                "detail": (
+                    "Convierte datos financieros, presupuestos y "
+                    "resultados en información clara para decidir."
+                ),
+            },
 
-        else:
-            self.role_name = "RECURSOS HUMANOS"
-            self.role_color = ORANGE
-            self.role_soft = ORANGE_SOFT
-            self.role_img_name = "rrhh.png"
+            "operaciones": {
+                "name": "OPERACIONES",
+                "color": PURPLE,
+                "soft": PURPLE_SOFT,
+                "image": "operaciones.png",
+                "quote": (
+                    "Quiero crear un panel específico para "
+                    "Operaciones."
+                ),
+                "detail": (
+                    "Organiza procesos, logística y operación "
+                    "para convertir datos en acciones eficientes."
+                ),
+            },
 
-            self.quote = (
-                "Quiero crear un panel específico"
-            )
+            "comercial": {
+                "name": "COMERCIAL / VENTAS",
+                "color": RED,
+                "soft": RED_SOFT,
+                "image": "comercial.png",
+                "quote": (
+                    "Quiero crear un panel específico para el "
+                    "área Comercial."
+                ),
+                "detail": (
+                    "Transforma datos de clientes, ventas y mercado "
+                    "en información útil para crecer."
+                ),
+            },
 
-            self.detail = (
-                "para organizar, visualizar y convertir "
-                "datos de talento en información útil."
-            )
+            "auditoria": {
+                "name": "AUDITORÍA / RIESGO",
+                "color": CYAN,
+                "soft": CYAN_SOFT,
+                "image": "auditoria.png",
+                "quote": (
+                    "Quiero crear un panel específico para "
+                    "Auditoría y Riesgo."
+                ),
+                "detail": (
+                    "Organiza riesgos, controles y cumplimiento "
+                    "para obtener información confiable y trazable."
+                ),
+            },
+        }
+
+        config = role_configs[self.role]
+
+        self.role_name = config["name"]
+        self.role_color = config["color"]
+        self.role_soft = config["soft"]
+        self.role_img_name = config["image"]
+        self.quote = config["quote"]
+        self.detail = config["detail"]
 
         # ----------------------------------------------------
         # ASSETS
