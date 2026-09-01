@@ -2162,12 +2162,29 @@ class Market:
             20
         )
 
+        # Insignia de puntos dibujada con formas básicas para no depender
+        # de símbolos Unicode que algunas fuentes no soportan.
+        pygame.draw.circle(
+            self.screen,
+            ORANGE,
+            (score.x + 24, score.centery),
+            12
+        )
         txt(
             self.screen,
-            f"⭐ {self.score}   |   CHEF DE TECNOLOGÍA",
+            "P",
+            self.font["tiny"],
+            WHITE,
+            (score.x + 24, score.centery),
+            True
+        )
+
+        txt(
+            self.screen,
+            f"{self.score}   |   CHEF DE TECNOLOGÍA",
             self.font["small"],
             WHITE,
-            score.center,
+            (score.x + 46, score.centery),
             True
         )
 
@@ -2241,17 +2258,22 @@ class Market:
             )
         )
 
-        txt(
+        # Check de éxito dibujado como vector.
+        # Evita el cuadrado blanco que aparece cuando la fuente no soporta "✓".
+        check_y = 345
+        pygame.draw.line(
             self.screen,
-            "✓",
-            pygame.font.SysFont(
-                "Arial",
-                55,
-                bold=True
-            ),
             WHITE,
-            (768, 345),
-            True
+            (744, check_y),
+            (760, check_y + 17),
+            7
+        )
+        pygame.draw.line(
+            self.screen,
+            WHITE,
+            (760, check_y + 17),
+            (793, check_y - 22),
+            7
         )
 
         txt(
@@ -2354,12 +2376,32 @@ class Market:
             RED
         )
 
+        # Warning vectorial: triángulo + signo de exclamación ASCII.
+        warning_center = (560, 365)
+        pygame.draw.polygon(
+            self.screen,
+            RED,
+            [
+                (warning_center[0], warning_center[1] - 22),
+                (warning_center[0] - 22, warning_center[1] + 18),
+                (warning_center[0] + 22, warning_center[1] + 18),
+            ]
+        )
         txt(
             self.screen,
-            "⚠  ESA OPCIÓN NO ES LA MEJOR",
+            "!",
+            self.font["bold"],
+            WHITE,
+            (warning_center[0], warning_center[1] + 3),
+            True
+        )
+
+        txt(
+            self.screen,
+            "ESA OPCIÓN NO ES LA MEJOR",
             self.font["button"],
             RED,
-            (768, 365),
+            (785, 365),
             True
         )
 

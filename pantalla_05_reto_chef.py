@@ -1525,23 +1525,30 @@ class TriviaApp:
             if self.result is not None:
 
                 if i == q["correct"]:
-                    text(
+                    # Check dibujado con Pygame: evita cuadrados vacíos
+                    # cuando la fuente no contiene el glyph Unicode "check".
+                    draw_check_icon(
                         self.screen,
-                        "✓",
-                        self.fonts["medium_bold"],
-                        GREEN,
                         (rect.right - 27, rect.centery),
-                        True
+                        13,
+                        GREEN
                     )
 
                 elif self.selected == i and self.result is False:
-                    text(
-                        self.screen,
-                        "×",
-                        self.fonts["medium_bold"],
-                        RED,
-                        (rect.right - 27, rect.centery),
-                        True
+                    # X dibujada con Pygame para mantener la misma
+                    # compatibilidad visual que el check.
+                    cx = rect.right - 27
+                    cy = rect.centery
+                    pygame.draw.line(
+                        self.screen, WHITE,
+                        (cx - 5, cy - 5), (cx + 5, cy + 5), 3
+                    )
+                    pygame.draw.line(
+                        self.screen, WHITE,
+                        (cx + 5, cy - 5), (cx - 5, cy + 5), 3
+                    )
+                    pygame.draw.circle(
+                        self.screen, RED, (cx, cy), 13, 2
                     )
 
         # Feedback
@@ -1563,15 +1570,37 @@ class TriviaApp:
                 color
             )
 
-            icon = "✓" if self.result else "!"
-            text(
-                self.screen,
-                icon,
-                self.fonts["feedback"],
-                color,
-                (835, feedback.centery),
-                True
-            )
+            # Icono del feedback dibujado directamente con Pygame.
+            # Así nunca depende de que Arial tenga "check" disponible.
+            icon_center = (835, feedback.centery)
+
+            if self.result:
+                draw_check_icon(
+                    self.screen,
+                    icon_center,
+                    16,
+                    GREEN
+                )
+            else:
+                pygame.draw.circle(
+                    self.screen,
+                    RED,
+                    icon_center,
+                    16,
+                    2
+                )
+                pygame.draw.line(
+                    self.screen, RED,
+                    (icon_center[0] - 6, icon_center[1] - 6),
+                    (icon_center[0] + 6, icon_center[1] + 6),
+                    3
+                )
+                pygame.draw.line(
+                    self.screen, RED,
+                    (icon_center[0] + 6, icon_center[1] - 6),
+                    (icon_center[0] - 6, icon_center[1] + 6),
+                    3
+                )
 
             msg = (
                 q["explanation"]
@@ -1696,13 +1725,18 @@ class TriviaApp:
                 1
             )
 
-            text(
-                self.screen,
-                "✓",
-                pygame.font.SysFont("Arial", 9, bold=True),
-                WHITE,
-                (px, card.y + 32),
-                True
+            # Check vectorial para no depender de glyphs Unicode.
+            pygame.draw.line(
+                self.screen, WHITE,
+                (px - 3, card.y + 32),
+                (px - 1, card.y + 34),
+                2
+            )
+            pygame.draw.line(
+                self.screen, WHITE,
+                (px - 1, card.y + 34),
+                (px + 4, card.y + 28),
+                2
             )
 
         text(

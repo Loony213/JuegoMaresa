@@ -975,7 +975,7 @@ class DataKitchen:
                 self.screen,
                 pygame.Rect(rect.x + 78, rect.y + 94, 155, 27),
                 GREEN,
-                "✓  COMPLETADO",
+                "COMPLETADO",
                 self.font["micro"], WHITE
             )
         elif hover:
@@ -1418,13 +1418,22 @@ class DataKitchen:
             17
         )
 
+        # COMPROBAR: el check se dibuja con Pygame para evitar
+        # que una fuente sin soporte lo muestre como un cuadrado.
         draw_text(
             self.screen,
-            "COMPROBAR  ✓",
+            "COMPROBAR",
             self.font["button"],
             WHITE,
-            confirm.center,
+            (confirm.centerx - 12, confirm.centery),
             center=True
+        )
+
+        checkmark(
+            self.screen,
+            (confirm.right - 30, confirm.centery),
+            WHITE,
+            0.85
         )
 
 
@@ -1523,9 +1532,7 @@ class DataKitchen:
 
             self.score += 125
 
-            self.message = (
-                "✓ " + task["fixed"]
-            )
+            self.message = task["fixed"]
 
             self.message_color = GREEN
 
